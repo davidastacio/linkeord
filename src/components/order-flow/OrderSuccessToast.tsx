@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { CheckCircle2, Copy, ExternalLink, X } from "lucide-react";
 
 type OrderSuccessToastProps = {
@@ -21,16 +21,16 @@ export function OrderSuccessToast({ orderId, productName, onClose }: OrderSucces
     return () => clearTimeout(t);
   }, []);
 
+  const handleClose = useCallback(() => {
+    setVisible(false);
+    setTimeout(onClose, 350);
+  }, [onClose]);
+
   // Auto-close after 12s
   useEffect(() => {
     const t = setTimeout(() => handleClose(), 12000);
     return () => clearTimeout(t);
-  }, []);
-
-  const handleClose = () => {
-    setVisible(false);
-    setTimeout(onClose, 350);
-  };
+  }, [handleClose]);
 
   const copyLink = () => {
     navigator.clipboard.writeText(trackingUrl).then(() => {
