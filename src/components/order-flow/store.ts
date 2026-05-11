@@ -40,9 +40,9 @@ export function useOrderStorage() {
     };
   }, []);
 
-  const addOrder = (order: Order) => {
+  const addOrder = (order: any) => {
     const newOrders = [order, ...orders];
-    setOrders(newOrders);
+    setOrders(newOrders as any);
     localStorage.setItem("linkeo_orders", JSON.stringify(newOrders));
     window.dispatchEvent(new Event("linkeo-storage"));
   };
@@ -78,7 +78,7 @@ export function useOrderStorage() {
           }
         : o
     );
-    setOrders(newOrders);
+    setOrders(newOrders as any);
     localStorage.setItem("linkeo_orders", JSON.stringify(newOrders));
     window.dispatchEvent(new Event("linkeo-storage"));
   };
@@ -104,7 +104,7 @@ export function useOrderStorage() {
           }
         : o
     );
-    setOrders(newOrders);
+    setOrders(newOrders as any);
     localStorage.setItem("linkeo_orders", JSON.stringify(newOrders));
     window.dispatchEvent(new Event("linkeo-storage"));
   };

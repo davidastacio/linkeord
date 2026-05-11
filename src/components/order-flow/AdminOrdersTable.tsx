@@ -5,6 +5,7 @@ import { Check, Copy, Truck } from "lucide-react";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { useOrderStorage } from "./store";
 import { deliveryAgents } from "@/lib/mock";
+import type { OrderStatus } from "@/lib/mock/types";
 
 export function AdminOrdersTable() {
   const { orders, updateOrderStatus, assignDelivery } = useOrderStorage();
@@ -12,7 +13,7 @@ export function AdminOrdersTable() {
   const [mode, setMode] = useState<"status" | "delivery">("status");
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const availableStatuses = [
+  const availableStatuses: OrderStatus[] = [
     "Pendiente",
     "Confirmado",
     "Solicitado a tienda",
