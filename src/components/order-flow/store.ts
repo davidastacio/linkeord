@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { recentOrders, earnings } from "@/lib/mock-data";
+import type { Order, OrderStatus, StatusHistoryEntry } from "@/lib/mock/types";
 
 export function useOrderStorage() {
   const [orders, setOrders] = useState(recentOrders);
@@ -39,14 +40,14 @@ export function useOrderStorage() {
     };
   }, []);
 
-  const addOrder = (order: any) => {
+  const addOrder = (order: Order) => {
     const newOrders = [order, ...orders];
     setOrders(newOrders);
     localStorage.setItem("linkeo_orders", JSON.stringify(newOrders));
     window.dispatchEvent(new Event("linkeo-storage"));
   };
 
-  const updateOrderStatus = (orderId: string, status: string) => {
+  const updateOrderStatus = (orderId: string, status: OrderStatus) => {
     const orderToUpdate = orders.find(o => o.id === orderId);
     if (!orderToUpdate) return;
 
@@ -63,7 +64,7 @@ export function useOrderStorage() {
       });
     }
 
-    const historyEntry = {
+    const historyEntry: StatusHistoryEntry = {
       status,
       timestamp: new Date().toISOString(),
     };
@@ -86,7 +87,7 @@ export function useOrderStorage() {
    * Assigns a delivery agent to an order and advances status to "Delivery asignado"
    */
   const assignDelivery = (orderId: string, deliveryId: string, deliveryName: string) => {
-    const historyEntry = {
+    const historyEntry: StatusHistoryEntry = {
       status: "Delivery asignado",
       timestamp: new Date().toISOString(),
       note: `Asignado a ${deliveryName}`,
