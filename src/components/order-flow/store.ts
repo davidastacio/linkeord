@@ -19,8 +19,8 @@ export function useOrderStorage() {
       
       if (error) {
         console.error("Error fetching orders:", error);
-      } else if (data) {
-        setOrders(data);
+      } else {
+        setOrders(data || []);
       }
     };
 
