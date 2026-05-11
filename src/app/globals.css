@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 210 60% 99%;
+  --foreground: 220 79% 13%;
+  --card: 0 0% 100%;
+  --card-foreground: 220 79% 13%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 220 79% 13%;
+  --primary: 219 100% 51%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 213 100% 96%;
+  --secondary-foreground: 220 79% 13%;
+  --muted: 214 44% 94%;
+  --muted-foreground: 218 20% 42%;
+  --accent: 216 100% 94%;
+  --accent-foreground: 219 100% 38%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 216 32% 88%;
+  --input: 216 32% 88%;
+  --ring: 219 100% 51%;
+  --radius: 0.75rem;
+}
+
+* {
+  @apply border-border;
+  letter-spacing: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-background text-foreground antialiased;
+}
+
+::selection {
+  background: rgba(7, 91, 255, 0.16);
+}
+
+.premium-surface {
+  background:
+    radial-gradient(circle at 78% 10%, rgba(7, 91, 255, 0.14), transparent 34%),
+    linear-gradient(135deg, #ffffff 0%, #f8fbff 52%, #eaf3ff 100%);
+}
+
+.navy-panel {
+  background:
+    radial-gradient(circle at 95% 0%, rgba(76, 147, 255, 0.45), transparent 38%),
+    linear-gradient(135deg, #075bff 0%, #063cb8 48%, #081a3a 100%);
+}

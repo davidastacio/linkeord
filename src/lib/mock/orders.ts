@@ -1,0 +1,191 @@
+import type { Order, OrderStatus } from "./types";
+
+export const orderStatuses: OrderStatus[] = [
+  "Pendiente",
+  "Confirmado",
+  "Solicitado a tienda",
+  "Delivery asignado",
+  "Recogido",
+  "En camino",
+  "Entregado",
+  "Cancelado",
+  "Pagado"
+];
+
+export const orders: Order[] = [
+  {
+    id: "#4589",
+    entrepreneurId: "ENT-001",
+    customerId: "CUS-001",
+    productId: "PRD-001",
+    supplierId: "SUP-001",
+    deliveryId: "DEL-001",
+    quantity: 1,
+    amount: 1600,
+    profit: 350,
+    commission: 160,
+    status: "Entregado",
+    date: "31 May, 2024",
+    customerPhone: "+1 (809) 555-0101",
+    pickupAddress: "Tienda Elegante, C/ El Conde 45, Santo Domingo",
+    deliveryAddress: "C/ Mella 120, Los Mameyes, Santo Domingo",
+    estimatedArrival: "45-60 min",
+    notes: "Llamar al llegar",
+    statusHistory: [
+      { status: "Pendiente", timestamp: "2024-05-31T08:00:00Z" },
+      { status: "Confirmado", timestamp: "2024-05-31T08:15:00Z" },
+      { status: "Solicitado a tienda", timestamp: "2024-05-31T08:30:00Z" },
+      { status: "Delivery asignado", timestamp: "2024-05-31T09:00:00Z" },
+      { status: "Recogido", timestamp: "2024-05-31T09:30:00Z" },
+      { status: "En camino", timestamp: "2024-05-31T09:45:00Z" },
+      { status: "Entregado", timestamp: "2024-05-31T10:20:00Z" }
+    ]
+  },
+  {
+    id: "#4588",
+    entrepreneurId: "ENT-002",
+    customerId: "CUS-002",
+    productId: "PRD-002",
+    supplierId: "SUP-002",
+    deliveryId: "DEL-002",
+    quantity: 1,
+    amount: 2850,
+    profit: 420,
+    commission: 285,
+    status: "Pagado",
+    date: "31 May, 2024",
+    customerPhone: "+1 (809) 555-0202",
+    pickupAddress: "Importadora Azul, Av. 27 de Febrero #88, DNSD",
+    deliveryAddress: "C/ Espaillat 55, Gazcue, Santo Domingo",
+    estimatedArrival: "30-45 min",
+    statusHistory: [
+      { status: "Pendiente", timestamp: "2024-05-31T07:00:00Z" },
+      { status: "Confirmado", timestamp: "2024-05-31T07:20:00Z" },
+      { status: "Solicitado a tienda", timestamp: "2024-05-31T07:40:00Z" },
+      { status: "Delivery asignado", timestamp: "2024-05-31T08:00:00Z" },
+      { status: "Recogido", timestamp: "2024-05-31T08:30:00Z" },
+      { status: "En camino", timestamp: "2024-05-31T08:45:00Z" },
+      { status: "Entregado", timestamp: "2024-05-31T09:10:00Z" },
+      { status: "Pagado", timestamp: "2024-05-31T10:00:00Z" }
+    ]
+  },
+  {
+    id: "#4587",
+    entrepreneurId: "ENT-003",
+    customerId: "CUS-003",
+    productId: "PRD-004",
+    supplierId: "SUP-001",
+    deliveryId: "DEL-003",
+    quantity: 1,
+    amount: 1250,
+    profit: 310,
+    commission: 125,
+    status: "En camino",
+    date: "30 May, 2024",
+    customerPhone: "+1 (829) 555-0303",
+    pickupAddress: "Tienda Elegante, C/ El Conde 45, Santo Domingo",
+    deliveryAddress: "Urb. Los Jardines, C/ Rosas 12, Santiago",
+    estimatedArrival: "20-35 min",
+    statusHistory: [
+      { status: "Pendiente", timestamp: "2024-05-30T10:00:00Z" },
+      { status: "Confirmado", timestamp: "2024-05-30T10:20:00Z" },
+      { status: "Solicitado a tienda", timestamp: "2024-05-30T10:45:00Z" },
+      { status: "Delivery asignado", timestamp: "2024-05-30T11:00:00Z" },
+      { status: "Recogido", timestamp: "2024-05-30T11:30:00Z" },
+      { status: "En camino", timestamp: "2024-05-30T11:50:00Z" }
+    ]
+  },
+  {
+    id: "#4586",
+    entrepreneurId: "ENT-004",
+    customerId: "CUS-004",
+    productId: "PRD-003",
+    supplierId: "SUP-003",
+    deliveryId: "DEL-001",
+    quantity: 1,
+    amount: 950,
+    profit: 280,
+    commission: 95,
+    status: "Solicitado a tienda",
+    date: "30 May, 2024",
+    customerPhone: "+1 (849) 555-0404",
+    pickupAddress: "Tech Caribe, Av. Independencia 300, SD",
+    deliveryAddress: "Torre Ejecutiva, Of. 401, Av. Abraham Lincoln, SD",
+    estimatedArrival: "60-90 min",
+    notes: "Dejar con el portero",
+    statusHistory: [
+      { status: "Pendiente", timestamp: "2024-05-30T12:00:00Z" },
+      { status: "Confirmado", timestamp: "2024-05-30T12:20:00Z" },
+      { status: "Solicitado a tienda", timestamp: "2024-05-30T12:45:00Z" }
+    ]
+  },
+  {
+    id: "#4585",
+    entrepreneurId: "ENT-005",
+    customerId: "CUS-005",
+    productId: "PRD-005",
+    supplierId: "SUP-002",
+    deliveryId: "DEL-002",
+    quantity: 1,
+    amount: 780,
+    profit: 260,
+    commission: 78,
+    status: "Cancelado",
+    date: "29 May, 2024",
+    customerPhone: "+1 (809) 555-0505",
+    pickupAddress: "Importadora Azul, Av. 27 de Febrero #88, DNSD",
+    deliveryAddress: "C/ Duarte 220, Villa Consuelo, SD",
+    statusHistory: [
+      { status: "Pendiente", timestamp: "2024-05-29T09:00:00Z" },
+      { status: "Cancelado", timestamp: "2024-05-29T09:30:00Z", note: "Cliente no disponible" }
+    ]
+  },
+  {
+    id: "#4584",
+    entrepreneurId: "ENT-001",
+    customerId: "CUS-002",
+    productId: "PRD-003",
+    supplierId: "SUP-003",
+    deliveryId: "DEL-003",
+    quantity: 2,
+    amount: 1900,
+    profit: 560,
+    commission: 190,
+    status: "Confirmado",
+    date: "29 May, 2024",
+    customerPhone: "+1 (809) 555-0202",
+    pickupAddress: "Tech Caribe, Av. Independencia 300, SD",
+    deliveryAddress: "C/ Espaillat 55, Gazcue, Santo Domingo",
+    estimatedArrival: "45-60 min",
+    statusHistory: [
+      { status: "Pendiente", timestamp: "2024-05-29T14:00:00Z" },
+      { status: "Confirmado", timestamp: "2024-05-29T14:25:00Z" }
+    ]
+  },
+  {
+    id: "#4583",
+    entrepreneurId: "ENT-001",
+    customerId: "CUS-005",
+    productId: "PRD-004",
+    supplierId: "SUP-001",
+    deliveryId: "DEL-001",
+    quantity: 1,
+    amount: 1250,
+    profit: 310,
+    commission: 125,
+    status: "Recogido",
+    date: "28 May, 2024",
+    customerPhone: "+1 (829) 555-0505",
+    pickupAddress: "Tienda Elegante, C/ El Conde 45, Santo Domingo",
+    deliveryAddress: "Res. Los Prados, Bloque 4 Apt. 201, SD Norte",
+    estimatedArrival: "30-45 min",
+    notes: "Llamar antes de llegar",
+    statusHistory: [
+      { status: "Pendiente", timestamp: "2024-05-28T11:00:00Z" },
+      { status: "Confirmado", timestamp: "2024-05-28T11:20:00Z" },
+      { status: "Solicitado a tienda", timestamp: "2024-05-28T11:40:00Z" },
+      { status: "Delivery asignado", timestamp: "2024-05-28T12:00:00Z" },
+      { status: "Recogido", timestamp: "2024-05-28T12:30:00Z" }
+    ]
+  }
+];
