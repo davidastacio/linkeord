@@ -7,9 +7,10 @@ import { OrderStatusBadge } from "@/components/order-status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useOrderStorage } from "@/components/order-flow/store";
 import { deliveryAgents } from "@/lib/mock";
+import type { OrderStatus } from "@/lib/mock/types";
 
 // Statuses a delivery agent can advance to
-const deliveryStatuses = [
+const deliveryStatuses: OrderStatus[] = [
   "Recogido",
   "En camino",
   "Entregado",
