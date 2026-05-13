@@ -7,6 +7,8 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const next = searchParams.get("next") ?? "/dashboard";
 
+  console.log("Auth Callback triggered. Code present:", !!code);
+
   if (code) {
     const cookieStore = await cookies();
     const supabase = createServerClient(
@@ -27,41 +29,56 @@ export async function GET(request: Request) {
       }
     );
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    console.log("Exchanging code for session...");
+    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
-    if (!error) {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (user) {
-        // Check if profile exists
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .single();
-
-        if (!profile) {
-          // Create default profile for social login
-          await supabase.from("profiles").insert([
-            {
-              id: user.id,
-              email: user.email,
-              full_name: user.user_metadata?.full_name || user.email?.split("@")[0],
-              role: "emprendedor",
-            }
-          ]);
-          return NextResponse.redirect(`${origin}/dashboard`);
-        }
-
-        if (profile.role === "admin") {
-          return NextResponse.redirect(`${origin}/admin`);
-        }
-      }
-
-      return NextResponse.redirect(`${origin}${next}`);
+    if (exchangeError) {
+      console.error("Exchange error:", exchangeError.message);
+      return NextResponse.redirect(`${origin}/login?error=auth_failed&reason=exchange_error`);
     }
+
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
+      console.error("User fetch error:", userError?.message || "No user found");
+      return NextResponse.redirect(`${origin}/login?error=auth_failed&reason=user_not_found`);
+    }
+
+    console.log("User authenticated:", user.email);
+
+    // Check if profile exists
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (profileError && profileError.code !== 'PGRST116') {
+      console.error("Profile fetch error:", profileError.message);
+    }
+
+    if (!profile) {
+      console.log("Creating new profile for user...");
+      const { error: insertError } = await supabase.from("profiles").insert([
+        {
+          id: user.id,
+          email: user.email,
+          full_name: user.user_metadata?.full_name || user.email?.split("@")[0],
+          role: "emprendedor",
+        }
+      ]);
+
+      if (insertError) {
+        console.error("Profile insert error:", insertError.message);
+        // We still redirect to dashboard, maybe RLS is blocking but user is auth
+      }
+    }
+
+    const redirectUrl = profile?.role === "admin" ? `${origin}/admin` : `${origin}${next}`;
+    console.log("Redirecting to:", redirectUrl);
+    return NextResponse.redirect(redirectUrl);
   }
 
-  // return the user to an error page with instructions
-  return NextResponse.redirect(`${origin}/login?error=auth_failed`);
+  console.warn("No code found in callback URL");
+  return NextResponse.redirect(`${origin}/login?error=auth_failed&reason=no_code`);
 }
