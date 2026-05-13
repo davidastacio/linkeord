@@ -13,6 +13,7 @@ import {
   tinySalesSeries
 } from "@/lib/mock-data";
 import { useOrderStorage } from "@/components/order-flow/store";
+import Link from "next/link";
 
 export function EntrepreneurDashboardHome() {
   const { orders, localEarnings, currentUser } = useOrderStorage();
@@ -78,7 +79,7 @@ export function EntrepreneurDashboardHome() {
         <Card className="overflow-hidden border-[#e6eefb] bg-white shadow-premium">
           <CardHeader className="flex-row items-center justify-between space-y-0 border-b border-[#edf2fb] pb-5">
             <CardTitle>Ventas recientes</CardTitle>
-            <a href="/dashboard/mis-pedidos" className="text-sm font-bold text-primary hover:underline cursor-pointer">Ver todos</a>
+            <Link href="/dashboard/mis-pedidos" className="text-sm font-bold text-primary hover:underline cursor-pointer">Ver todos</Link>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -136,7 +137,7 @@ export function EntrepreneurDashboardHome() {
         <Card className="border-[#e6eefb] shadow-premium">
           <CardHeader className="flex-row items-center justify-between space-y-0">
             <CardTitle>Productos recomendados</CardTitle>
-            <a href="/dashboard/mis-productos" className="text-sm font-bold text-primary hover:underline">Ver catalogo</a>
+            <Link href="/dashboard/mis-productos" className="text-sm font-bold text-primary hover:underline">Ver catalogo</Link>
           </CardHeader>
           <CardContent className="space-y-5">
             {products.slice(0, 3).map((product) => (
