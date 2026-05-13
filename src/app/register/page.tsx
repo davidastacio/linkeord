@@ -1,18 +1,84 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Lock, Mail, Package, Phone, Truck, User } from "lucide-react";
 import { AuthShell } from "@/components/auth/auth-shell";
-
-const fields = [
-  { label: "Nombre completo", type: "text", icon: User },
-  { label: "Correo electrónico", type: "email", icon: Mail },
-  { label: "Teléfono", type: "tel", icon: Phone },
-  { label: "Contraseña", type: "password", icon: Lock },
-  { label: "Confirmar contraseña", type: "password", icon: Lock },
-] as const;
+import { supabase } from "@/lib/supabase";
 
 export default function RegisterPage() {
+  const router = useRouter();
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+    confirmPassword: "",
+    role: "emprendedor"
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    if (formData.password !== formData.confirmPassword) {
+      setError("Las contraseñas no coinciden.");
+      setLoading(false);
+      return;
+    }
+
+    // Sign up with Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: formData.email,
+      password: formData.password,
+      options: {
+        data: {
+          full_name: formData.name,
+          role: formData.role,
+        }
+      }
+    });
+
+    if (authError) {
+      setError(authError.message);
+      setLoading(false);
+      return;
+    }
+
+    // Try to insert into profiles table (will need INSERT policy in Supabase)
+    if (authData.user) {
+      const { error: profileError } = await supabase.from("profiles").insert([
+        {
+          id: authData.user.id,
+          email: formData.email,
+          full_name: formData.name,
+          role: formData.role,
+        }
+      ]);
+
+      if (profileError) {
+        console.error("Error creating profile:", profileError.message);
+        // We'll log it but still redirect to dashboard for now
+      }
+
+      if (formData.role === "admin") {
+        router.push("/admin/overview");
+      } else {
+        router.push("/dashboard/overview");
+      }
+    } else {
+      setLoading(false);
+    }
+  };
+
   return (
     <AuthShell
       headline={
@@ -27,46 +93,106 @@ export default function RegisterPage() {
           <p className="mt-2 text-base font-semibold text-slate-600">Empieza en minutos.</p>
         </div>
 
-        <form className="mt-7 grid gap-4">
-          {fields.map((field) => {
-            const Icon = field.icon;
+        <form onSubmit={handleRegister} className="mt-7 grid gap-4">
+          {error && (
+            <div className="rounded-md bg-red-50 p-3 text-sm font-bold text-red-600">
+              {error}
+            </div>
+          )}
+          
+          <label className="relative block">
+            <span className="sr-only">Nombre completo</span>
+            <User className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+            <input
+              type="text"
+              name="name"
+              placeholder="Nombre completo"
+              value={formData.name}
+              onChange={handleChange}
+              required
+              className="h-12 w-full rounded-md border border-slate-200 bg-white pl-12 pr-4 text-sm font-semibold text-slate-900 shadow-sm outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+            />
+          </label>
 
-            return (
-              <label key={field.label} className="relative block">
-                <span className="sr-only">{field.label}</span>
-                <Icon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
-                <input
-                  type={field.type}
-                  placeholder={field.label}
-                  className="h-12 w-full rounded-md border border-slate-200 bg-white pl-12 pr-4 text-sm font-semibold text-slate-900 shadow-sm outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                />
-              </label>
-            );
-          })}
+          <label className="relative block">
+            <span className="sr-only">Correo electrónico</span>
+            <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+            <input
+              type="email"
+              name="email"
+              placeholder="Correo electrónico"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              className="h-12 w-full rounded-md border border-slate-200 bg-white pl-12 pr-4 text-sm font-semibold text-slate-900 shadow-sm outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+            />
+          </label>
+
+          <label className="relative block">
+            <span className="sr-only">Teléfono</span>
+            <Phone className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+            <input
+              type="tel"
+              name="phone"
+              placeholder="Teléfono"
+              value={formData.phone}
+              onChange={handleChange}
+              required
+              className="h-12 w-full rounded-md border border-slate-200 bg-white pl-12 pr-4 text-sm font-semibold text-slate-900 shadow-sm outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+            />
+          </label>
+
+          <label className="relative block">
+            <span className="sr-only">Contraseña</span>
+            <Lock className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+            <input
+              type="password"
+              name="password"
+              placeholder="Contraseña"
+              value={formData.password}
+              onChange={handleChange}
+              required
+              className="h-12 w-full rounded-md border border-slate-200 bg-white pl-12 pr-4 text-sm font-semibold text-slate-900 shadow-sm outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+            />
+          </label>
+
+          <label className="relative block">
+            <span className="sr-only">Confirmar contraseña</span>
+            <Lock className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+            <input
+              type="password"
+              name="confirmPassword"
+              placeholder="Confirmar contraseña"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              required
+              className="h-12 w-full rounded-md border border-slate-200 bg-white pl-12 pr-4 text-sm font-semibold text-slate-900 shadow-sm outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+            />
+          </label>
 
           <div className="grid gap-3 pt-1">
             <p className="text-sm font-black text-slate-950">¿Cómo te identificarás en Linkeo?</p>
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className="flex min-h-20 cursor-pointer items-center gap-4 rounded-md border border-blue-500 bg-blue-50/70 px-4 py-3 shadow-sm ring-2 ring-blue-100">
-                <input type="radio" name="role" value="entrepreneur" defaultChecked className="sr-only" />
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-white text-blue-600 shadow-sm">
+              <label className={`flex min-h-20 cursor-pointer items-center gap-4 rounded-md border px-4 py-3 shadow-sm transition ${formData.role === "emprendedor" ? "border-blue-500 bg-blue-50/70 ring-2 ring-blue-100" : "border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/40"}`}>
+                <input type="radio" name="role" value="emprendedor" checked={formData.role === "emprendedor"} onChange={handleChange} className="sr-only" />
+                <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-md shadow-sm ${formData.role === "emprendedor" ? "bg-white text-blue-600" : "bg-slate-50 text-navy"}`}>
                   <Package className="h-6 w-6" />
                 </span>
                 <span>
-                  <span className="block text-sm font-black text-blue-700">Emprendedor</span>
+                  <span className={`block text-sm font-black ${formData.role === "emprendedor" ? "text-blue-700" : "text-slate-950"}`}>Emprendedor</span>
                   <span className="block text-xs font-semibold leading-5 text-slate-600">
                     Vende productos y gestiona tu negocio
                   </span>
                 </span>
               </label>
 
-              <label className="flex min-h-20 cursor-pointer items-center gap-4 rounded-md border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-blue-300 hover:bg-blue-50/40">
-                <input type="radio" name="role" value="delivery" className="sr-only" />
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-slate-50 text-navy shadow-sm">
+              <label className={`flex min-h-20 cursor-pointer items-center gap-4 rounded-md border px-4 py-3 shadow-sm transition ${formData.role === "delivery" ? "border-blue-500 bg-blue-50/70 ring-2 ring-blue-100" : "border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/40"}`}>
+                <input type="radio" name="role" value="delivery" checked={formData.role === "delivery"} onChange={handleChange} className="sr-only" />
+                <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-md shadow-sm ${formData.role === "delivery" ? "bg-white text-blue-600" : "bg-slate-50 text-navy"}`}>
                   <Truck className="h-6 w-6" />
                 </span>
                 <span>
-                  <span className="block text-sm font-black text-slate-950">Delivery</span>
+                  <span className={`block text-sm font-black ${formData.role === "delivery" ? "text-blue-700" : "text-slate-950"}`}>Delivery</span>
                   <span className="block text-xs font-semibold leading-5 text-slate-600">
                     Realiza entregas y gana comisiones
                   </span>
@@ -76,7 +202,7 @@ export default function RegisterPage() {
           </div>
 
           <label className="flex items-start gap-3 pt-1 text-sm font-medium leading-6 text-slate-600">
-            <input type="checkbox" className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+            <input type="checkbox" required className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
             <span>
               Acepto los{" "}
               <Link href="/register" className="font-bold text-blue-600 hover:text-blue-700">
@@ -91,10 +217,11 @@ export default function RegisterPage() {
           </label>
 
           <button
-            type="button"
-            className="mt-1 h-12 rounded-md bg-blue-600 px-5 text-sm font-black text-white shadow-[0_18px_35px_rgba(7,91,255,0.26)] transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200"
+            type="submit"
+            disabled={loading}
+            className="mt-1 h-12 rounded-md bg-blue-600 px-5 text-sm font-black text-white shadow-[0_18px_35px_rgba(7,91,255,0.26)] transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200 disabled:opacity-50"
           >
-            Crear cuenta
+            {loading ? "Creando cuenta..." : "Crear cuenta"}
           </button>
 
           <div className="flex items-center gap-4 py-1 text-sm font-bold text-slate-500">

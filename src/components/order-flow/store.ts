@@ -8,14 +8,30 @@ import type { OrderStatus, StatusHistoryEntry } from "@/lib/mock/types";
 export function useOrderStorage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [localEarnings, setEarnings] = useState(earnings);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
     // 1. Fetch initial orders from Supabase
     const fetchOrders = async () => {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*")
-        .order("date", { ascending: false });
+      const { data: authData } = await supabase.auth.getUser();
+      let query = supabase.from("orders").select("*").order("date", { ascending: false });
+
+      if (authData.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", authData.user.id)
+          .single();
+        
+        if (profile) {
+          setCurrentUser(profile);
+          if (profile.role === "emprendedor") {
+            query = query.eq("entrepreneurId", authData.user.id);
+          }
+        }
+      }
+
+      const { data, error } = await query;
       
       if (error) {
         console.error("Error fetching orders:", error);
@@ -134,6 +150,6 @@ export function useOrderStorage() {
     window.dispatchEvent(new Event("linkeo-storage"));
   };
 
-  return { orders, localEarnings, addOrder, updateOrderStatus, assignDelivery, addEarning };
+  return { orders, localEarnings, currentUser, addOrder, updateOrderStatus, assignDelivery, addEarning };
 }
 

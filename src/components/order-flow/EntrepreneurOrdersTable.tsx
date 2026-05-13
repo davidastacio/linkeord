@@ -7,11 +7,11 @@ import { useOrderStorage } from "./store";
 import { deliveryAgents } from "@/lib/mock";
 
 export function EntrepreneurOrdersTable() {
-  const { orders } = useOrderStorage();
+  const { orders, currentUser } = useOrderStorage();
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const myOrders = orders.filter(
-    (o: any) => o.entrepreneurId === "ENT-001" || o.entrepreneur === "Emprendedor"
+    (o: any) => currentUser ? o.entrepreneurId === currentUser.id : false
   );
 
   const getAgentName = (order: any) => {

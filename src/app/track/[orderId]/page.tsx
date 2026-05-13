@@ -4,6 +4,7 @@ import { use, useEffect, useState } from "react";
 import { CheckCircle2, Circle, Clock, MapPin, Package, Phone, Truck } from "lucide-react";
 import { recentOrders } from "@/lib/mock-data";
 import { deliveryAgents } from "@/lib/mock";
+import { supabase } from "@/lib/supabase";
 
 
 const ALL_STEPS = [
@@ -38,16 +39,39 @@ export default function TrackingPage({ params }: { params: Promise<{ orderId: st
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Look in localStorage first (reflects admin/delivery updates), then fallback to mock
-    const stored = localStorage.getItem("linkeo_orders");
-    const allOrders: any[] = stored ? JSON.parse(stored) : recentOrders;
+    const fetchOrder = async () => {
+      const normalizedId = orderId.startsWith("#") ? orderId : `#${orderId}`;
+      const { data, error } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("id", normalizedId)
+        .single();
+      
+      if (!error && data) {
+        setOrder(data);
+      } else {
+        setOrder(null);
+      }
+      setLoading(false);
+    };
+
+    fetchOrder();
 
     const normalizedId = orderId.startsWith("#") ? orderId : `#${orderId}`;
-    const found = allOrders.find(
-      (o: any) => o.id === normalizedId || o.id === orderId
-    );
-    setOrder(found ?? null);
-    setLoading(false);
+    const subscription = supabase
+      .channel(`order_tracking_${normalizedId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${normalizedId}` },
+        (payload) => {
+          setOrder(payload.new);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
   }, [orderId]);
 
   if (loading) {

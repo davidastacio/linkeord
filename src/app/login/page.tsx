@@ -1,11 +1,54 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Eye, Lock, Mail } from "lucide-react";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (signInError) {
+      setError("Correo o contraseña incorrectos");
+      setLoading(false);
+      return;
+    }
+
+    // After login, check the user's role from the profiles table
+    if (data?.user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .single();
+      
+      if (profile?.role === "admin") {
+        router.push("/admin/overview");
+      } else {
+        router.push("/dashboard/overview");
+      }
+    } else {
+      setLoading(false);
+    }
+  };
+
   return (
     <AuthShell
       headline={
@@ -23,13 +66,21 @@ export default function LoginPage() {
           <p className="mt-2 text-base font-semibold text-slate-600">Accede a tu cuenta de Linkeo</p>
         </div>
 
-        <form className="mt-8 grid gap-4">
+        <form onSubmit={handleLogin} className="mt-8 grid gap-4">
+          {error && (
+            <div className="rounded-md bg-red-50 p-3 text-sm font-bold text-red-600">
+              {error}
+            </div>
+          )}
           <label className="relative block">
             <span className="sr-only">Correo electrónico</span>
             <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
             <input
               type="email"
               placeholder="Correo electrónico"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
               className="h-14 w-full rounded-md border border-slate-200 bg-white pl-12 pr-4 text-base font-semibold text-slate-900 shadow-sm outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
             />
           </label>
@@ -40,6 +91,9 @@ export default function LoginPage() {
             <input
               type="password"
               placeholder="Contraseña"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
               className="h-14 w-full rounded-md border border-slate-200 bg-white pl-12 pr-12 text-base font-semibold text-slate-900 shadow-sm outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
             />
             <Eye className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
@@ -56,13 +110,11 @@ export default function LoginPage() {
           </div>
 
           <button
-            type="button"
-            onClick={() => {
-              window.location.href = "/dashboard";
-            }}
-            className="mt-3 h-14 rounded-md bg-blue-600 px-5 text-base font-black text-white shadow-[0_18px_35px_rgba(7,91,255,0.26)] transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200"
+            type="submit"
+            disabled={loading}
+            className="mt-3 h-14 rounded-md bg-blue-600 px-5 text-base font-black text-white shadow-[0_18px_35px_rgba(7,91,255,0.26)] transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200 disabled:opacity-50"
           >
-            Iniciar sesión
+            {loading ? "Iniciando..." : "Iniciar sesión"}
           </button>
 
           <div className="flex items-center gap-4 py-2 text-sm font-bold text-slate-500">

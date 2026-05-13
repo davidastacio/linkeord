@@ -7,7 +7,7 @@ import { formatCurrency } from "@/lib/mock";
 import { OrderSuccessToast } from "./OrderSuccessToast";
 
 export function EntrepreneurProductsTable({ products }: { products: any[] }) {
-  const { addOrder } = useOrderStorage();
+  const { addOrder, currentUser } = useOrderStorage();
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
   const [createdOrder, setCreatedOrder] = useState<{ id: string; product: string } | null>(null);
 
@@ -20,7 +20,7 @@ export function EntrepreneurProductsTable({ products }: { products: any[] }) {
 
   const handleSell = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedProduct) return;
+    if (!selectedProduct || !currentUser) return;
 
     const price = parseFloat(sellPrice);
     if (isNaN(price)) return;
@@ -38,8 +38,8 @@ export function EntrepreneurProductsTable({ products }: { products: any[] }) {
       customer: customerName,
       customerPhone,
       customerAddress,
-      entrepreneurId: "ENT-001",
-      entrepreneur: "Emprendedor RD",
+      entrepreneurId: currentUser.id,
+      entrepreneur: currentUser.full_name || "Emprendedor",
       amount: formatCurrency(price + costoDelivery), // Cobrar al cliente el precio + delivery
       profit: formatCurrency(gananciaEmprendedor),
       status: "Pendiente",
