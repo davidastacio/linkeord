@@ -49,6 +49,16 @@ export default function LoginPage() {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      }
+    });
+    if (error) setError(error.message);
+  };
+
   return (
     <AuthShell
       headline={
@@ -125,6 +135,7 @@ export default function LoginPage() {
 
           <button
             type="button"
+            onClick={handleGoogleLogin}
             className="flex h-12 items-center justify-center gap-3 rounded-md border border-slate-200 bg-white px-4 text-sm font-black text-slate-950 shadow-sm transition hover:bg-slate-50"
           >
             <span className="text-lg font-black text-blue-600">G</span>
