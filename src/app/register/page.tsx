@@ -207,9 +207,10 @@ export default function RegisterPage() {
               id="terms-checkbox"
               type="checkbox" 
               required 
-              className="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" 
+              className="mt-1 h-5 w-5 shrink-0 cursor-pointer accent-blue-600" 
+              style={{ accentColor: '#2563eb' }}
             />
-            <label htmlFor="terms-checkbox">
+            <label htmlFor="terms-checkbox" className="cursor-pointer">
               Acepto los{" "}
               <a href="#" target="_blank" rel="noopener noreferrer" className="font-bold text-blue-600 hover:text-blue-700">
                 Términos y Condiciones
