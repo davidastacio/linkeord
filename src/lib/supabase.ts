@@ -1,3 +1,4 @@
+import { createBrowserClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 
 const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://dummy.supabase.co";
@@ -10,16 +11,8 @@ if (!supabaseUrl.startsWith("http")) {
   supabaseUrl = "https://dummy.supabase.co";
 }
 
-if (typeof window !== "undefined" && supabaseUrl === "https://dummy.supabase.co") {
-  console.warn("⚠️ Advertencia: Supabase URL invalida o no definida. Usando fallback.");
-}
-
-let client;
-try {
-  client = createClient(supabaseUrl, supabaseAnonKey);
-} catch (e) {
-  console.error("Error inicializando Supabase. Fallback activado.", e);
-  client = createClient("https://dummy.supabase.co", "dummy");
-}
-
-export const supabase = client;
+// For client-side, we use createBrowserClient which handles cookies for PKCE
+export const supabase = 
+  typeof window !== "undefined"
+    ? createBrowserClient(supabaseUrl, supabaseAnonKey)
+    : createClient(supabaseUrl, supabaseAnonKey);
