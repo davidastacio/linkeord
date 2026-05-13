@@ -15,7 +15,8 @@ export default function RegisterPage() {
     phone: "",
     password: "",
     confirmPassword: "",
-    role: "emprendedor"
+    role: "emprendedor",
+    acceptedTerms: false
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -201,20 +202,27 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <label className="flex items-start gap-3 pt-1 text-sm font-medium leading-6 text-slate-600">
-            <input type="checkbox" required className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
-            <span>
+          <div className="flex items-start gap-3 pt-1 text-sm font-medium leading-6 text-slate-600">
+            <input 
+              id="terms-checkbox"
+              type="checkbox" 
+              required 
+              checked={formData.acceptedTerms}
+              onChange={(e) => setFormData({ ...formData, acceptedTerms: e.target.checked })}
+              className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" 
+            />
+            <label htmlFor="terms-checkbox">
               Acepto los{" "}
-              <Link href="/register" className="font-bold text-blue-600 hover:text-blue-700">
+              <Link href="#" onClick={(e) => e.preventDefault()} className="font-bold text-blue-600 hover:text-blue-700">
                 Términos y Condiciones
               </Link>{" "}
               y la{" "}
-              <Link href="/register" className="font-bold text-blue-600 hover:text-blue-700">
+              <Link href="#" onClick={(e) => e.preventDefault()} className="font-bold text-blue-600 hover:text-blue-700">
                 Política de Privacidad
               </Link>
               .
-            </span>
-          </label>
+            </label>
+          </div>
 
           <button
             type="submit"
