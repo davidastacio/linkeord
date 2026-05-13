@@ -36,6 +36,12 @@ export default function RegisterPage() {
       return;
     }
 
+    if (!formData.acceptedTerms) {
+      setError("Debes aceptar los Términos y Condiciones para continuar.");
+      setLoading(false);
+      return;
+    }
+
     // Sign up with Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: formData.email,
@@ -203,24 +209,30 @@ export default function RegisterPage() {
           </div>
 
           <div className="flex items-start gap-3 pt-1 text-sm font-medium leading-6 text-slate-600">
-            <input 
-              id="terms-checkbox"
-              type="checkbox" 
-              required 
-              className="mt-1 h-5 w-5 shrink-0 cursor-pointer accent-blue-600" 
-              style={{ accentColor: '#2563eb' }}
-            />
-            <label htmlFor="terms-checkbox" className="cursor-pointer">
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, acceptedTerms: !formData.acceptedTerms })}
+              className={`mt-1 flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded border transition-colors ${
+                formData.acceptedTerms ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300 bg-white hover:border-blue-400'
+              }`}
+            >
+              {formData.acceptedTerms && (
+                <svg viewBox="0 0 14 14" fill="none" className="h-3.5 w-3.5">
+                  <path d="M3 8L6 11L11 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </button>
+            <div className="cursor-pointer select-none" onClick={() => setFormData({ ...formData, acceptedTerms: !formData.acceptedTerms })}>
               Acepto los{" "}
-              <a href="#" target="_blank" rel="noopener noreferrer" className="font-bold text-blue-600 hover:text-blue-700">
+              <a href="#" onClick={(e) => e.stopPropagation()} target="_blank" rel="noopener noreferrer" className="font-bold text-blue-600 hover:text-blue-700">
                 Términos y Condiciones
               </a>{" "}
               y la{" "}
-              <a href="#" target="_blank" rel="noopener noreferrer" className="font-bold text-blue-600 hover:text-blue-700">
+              <a href="#" onClick={(e) => e.stopPropagation()} target="_blank" rel="noopener noreferrer" className="font-bold text-blue-600 hover:text-blue-700">
                 Política de Privacidad
               </a>
               .
-            </label>
+            </div>
           </div>
 
           <button
