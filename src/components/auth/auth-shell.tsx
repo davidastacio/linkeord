@@ -95,9 +95,9 @@ export function AuthShell({ children, headline }: AuthShellProps) {
               </div>
             </div>
 
-            <div className="relative mx-auto w-full max-w-[500px] lg:absolute lg:bottom-0 lg:left-[42%] lg:max-w-[600px] xl:left-[38%]">
-              <div className="pointer-events-none absolute left-8 top-24 hidden h-64 w-64 rounded-full bg-blue-100/80 lg:block" />
-              <div className="pointer-events-none absolute right-2 top-10 hidden h-44 w-44 bg-[radial-gradient(circle,#bfdbfe_1.3px,transparent_1.3px)] [background-size:18px_18px] opacity-70 lg:block" />
+            <div className="pointer-events-none relative mx-auto w-full max-w-[500px] lg:absolute lg:bottom-0 lg:left-[42%] lg:max-w-[600px] xl:left-[38%]">
+              <div className="absolute left-8 top-24 hidden h-64 w-64 rounded-full bg-blue-100/80 lg:block" />
+              <div className="absolute right-2 top-10 hidden h-44 w-44 bg-[radial-gradient(circle,#bfdbfe_1.3px,transparent_1.3px)] [background-size:18px_18px] opacity-70 lg:block" />
               <Image
                 src="/assets/linkeo-auth-phone-box.png"
                 alt="Vista de Linkeo con celular, caja y estadísticas"
