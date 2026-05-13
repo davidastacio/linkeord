@@ -207,19 +207,17 @@ export default function RegisterPage() {
               id="terms-checkbox"
               type="checkbox" 
               required 
-              checked={formData.acceptedTerms}
-              onChange={(e) => setFormData({ ...formData, acceptedTerms: e.target.checked })}
-              className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" 
+              className="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" 
             />
             <label htmlFor="terms-checkbox">
               Acepto los{" "}
-              <Link href="#" onClick={(e) => e.preventDefault()} className="font-bold text-blue-600 hover:text-blue-700">
+              <a href="#" target="_blank" rel="noopener noreferrer" className="font-bold text-blue-600 hover:text-blue-700">
                 Términos y Condiciones
-              </Link>{" "}
+              </a>{" "}
               y la{" "}
-              <Link href="#" onClick={(e) => e.preventDefault()} className="font-bold text-blue-600 hover:text-blue-700">
+              <a href="#" target="_blank" rel="noopener noreferrer" className="font-bold text-blue-600 hover:text-blue-700">
                 Política de Privacidad
-              </Link>
+              </a>
               .
             </label>
           </div>
