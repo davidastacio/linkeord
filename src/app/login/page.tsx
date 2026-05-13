@@ -20,7 +20,7 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -32,11 +32,11 @@ export default function LoginPage() {
     }
 
     // After login, check the user's role from the profiles table
-    if (data?.user) {
+    if (signInData?.user) {
       const { data: profile } = await supabase
         .from("profiles")
         .select("role")
-        .eq("id", data.user.id)
+        .eq("id", signInData.user.id)
         .single();
       
       if (profile?.role === "admin") {

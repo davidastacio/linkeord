@@ -43,7 +43,7 @@ export default function RegisterPage() {
     }
 
     // Sign up with Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    const { data: signUpData, error: authError } = await supabase.auth.signUp({
       email: formData.email,
       password: formData.password,
       options: {
@@ -61,10 +61,10 @@ export default function RegisterPage() {
     }
 
     // Try to insert into profiles table (will need INSERT policy in Supabase)
-    if (authData.user) {
+    if (signUpData.user) {
       const { error: profileError } = await supabase.from("profiles").insert([
         {
-          id: authData.user.id,
+          id: signUpData.user.id,
           email: formData.email,
           full_name: formData.name,
           role: formData.role,
