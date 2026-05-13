@@ -77,9 +77,9 @@ export default function RegisterPage() {
       }
 
       if (formData.role === "admin") {
-        router.push("/admin/overview");
+        router.push("/admin");
       } else {
-        router.push("/dashboard/overview");
+        router.push("/dashboard");
       }
     } else {
       setLoading(false);

@@ -7,7 +7,7 @@ import type { OrderStatus, StatusHistoryEntry } from "@/lib/mock/types";
 
 export function useOrderStorage() {
   const [orders, setOrders] = useState<any[]>([]);
-  const [localEarnings, setEarnings] = useState(earnings);
+  const [localEarnings, setEarnings] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
@@ -60,7 +60,7 @@ export function useOrderStorage() {
     if (savedEarnings) {
       setEarnings(JSON.parse(savedEarnings));
     } else {
-      setEarnings(earnings);
+      setEarnings([]);
     }
 
     const handleStorageChange = () => {

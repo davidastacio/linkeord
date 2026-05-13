@@ -1,9 +1,13 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Bell, ChevronDown, Menu, MessageSquareText, Search, PackagePlus } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
 
 type DashboardShellProps = {
   mode: "dashboard" | "admin";
@@ -14,6 +18,31 @@ type DashboardShellProps = {
 
 export function DashboardShell({ mode, title, eyebrow, children }: DashboardShellProps) {
   const isAdmin = mode === "admin";
+  const [userProfile, setUserProfile] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+        
+        if (profile) {
+          setUserProfile(profile);
+        }
+      }
+    };
+    fetchUser();
+  }, []);
+
+  const userName = userProfile?.full_name || (isAdmin ? "Administrador" : "Cargando...");
+  const userInitials = userProfile?.full_name 
+    ? userProfile.full_name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
+    : (isAdmin ? "AD" : "...");
+  const userRole = userProfile?.role === "admin" ? "Admin" : (userProfile?.role === "emprendedor" ? "Emprendedor" : "Usuario");
 
   return (
     <div className={cn("min-h-screen", isAdmin ? "bg-[#f6f9ff]" : "bg-[#f7faff]")}>
@@ -82,11 +111,11 @@ export function DashboardShell({ mode, title, eyebrow, children }: DashboardShel
               </Button>
               <Link href="/" className="hidden items-center gap-3 pl-2 sm:flex">
                 <span className={cn("grid h-10 w-10 place-items-center rounded-full bg-secondary text-sm font-black text-primary", !isAdmin && "ring-4 ring-white")}>
-                  {isAdmin ? "AD" : "ER"}
+                  {userInitials}
                 </span>
                 <span className="hidden xl:block">
-                  <span className="block text-sm font-black text-navy">{isAdmin ? "Administrador" : "Emprendedor RD"}</span>
-                  <span className="block text-xs font-semibold text-muted-foreground">{isAdmin ? "Admin" : "Nivel Oro"}</span>
+                  <span className="block text-sm font-black text-navy">{userName}</span>
+                  <span className="block text-xs font-semibold text-muted-foreground">{userRole}</span>
                 </span>
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
               </Link>
