@@ -315,8 +315,13 @@ export function EntrepreneurDashboardContent({ section }: { section: string }) {
         </div>
       )}
 
+      {/* ── CONFIGURACION ── */}
+      {section === "configuracion" && (
+        <SettingsForm currentUser={currentUser} updateProfile={updateProfile} />
+      )}
+
       {/* Default cases for other sections */}
-      {["materiales", "configuracion", "ayuda"].includes(section) && (
+      {["materiales", "ayuda"].includes(section) && (
         <div className="py-12 text-center text-muted-foreground">
           Contenido de {title} en desarrollo...
         </div>
@@ -325,3 +330,149 @@ export function EntrepreneurDashboardContent({ section }: { section: string }) {
     </DashboardShell>
   );
 }
+
+function SettingsForm({ currentUser, updateProfile }: { currentUser: any; updateProfile: (fields: any) => Promise<void> }) {
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [city, setCity] = useState("");
+  const [storeName, setStoreName] = useState("");
+  const [bankName, setBankName] = useState("");
+  const [bankAccount, setBankAccount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("Transferencia bancaria");
+  const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    if (currentUser) {
+      setFullName(currentUser.full_name || "");
+      setPhone(currentUser.phone || "");
+      setCity(currentUser.city || "");
+      setStoreName(currentUser.store_name || "");
+      setBankName(currentUser.bank_name || "Banco Popular");
+      setBankAccount(currentUser.bank_account || "");
+      setPaymentMethod(currentUser.payment_method || "Transferencia bancaria");
+    }
+  }, [currentUser]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setSuccess(false);
+    await updateProfile({
+      full_name: fullName,
+      phone,
+      city,
+      store_name: storeName,
+      bank_name: bankName,
+      bank_account: bankAccount,
+      payment_method: paymentMethod
+    });
+    setSaving(false);
+    setSuccess(true);
+    setTimeout(() => setSuccess(false), 3000);
+  };
+
+  return (
+    <Card className="shadow-sm">
+      <CardHeader>
+        <CardTitle>Configuración de la Cuenta</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {success && (
+            <div className="rounded-lg bg-emerald-50 p-4 text-sm font-bold text-emerald-700 border border-emerald-100">
+              ¡Configuración guardada exitosamente!
+            </div>
+          )}
+
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Datos Personales */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-black uppercase text-muted-foreground">Datos Personales</h3>
+              <div>
+                <label className="mb-1 block text-xs font-bold text-navy">Nombre Completo</label>
+                <input
+                  required
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-bold text-navy">Teléfono</label>
+                <input
+                  type="text"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="Ej. 809-555-0199"
+                  className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-bold text-navy">Ciudad</label>
+                <input
+                  type="text"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="Ej. Santo Domingo"
+                  className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white"
+                />
+              </div>
+            </div>
+
+            {/* Datos de Tienda y Banco */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-black uppercase text-muted-foreground">Negocio y Cobros</h3>
+              <div>
+                <label className="mb-1 block text-xs font-bold text-navy">Nombre de tu Tienda</label>
+                <input
+                  type="text"
+                  value={storeName}
+                  onChange={(e) => setStoreName(e.target.value)}
+                  placeholder="Ej. Mi Tienda Linkeo"
+                  className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-bold text-navy">Banco</label>
+                <select
+                  value={bankName}
+                  onChange={(e) => setBankName(e.target.value)}
+                  className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white"
+                >
+                  <option value="Banco Popular">Banco Popular Dominicano</option>
+                  <option value="Banco de Reservas">Banreservas</option>
+                  <option value="Banco BHD">Banco BHD</option>
+                  <option value="Asociación Popular">Asociación Popular (APAP)</option>
+                  <option value="Banco Scotiabank">Scotiabank</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-bold text-navy">Número de Cuenta</label>
+                <input
+                  type="text"
+                  value={bankAccount}
+                  onChange={(e) => setBankAccount(e.target.value)}
+                  placeholder="Ej. 799123456"
+                  className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white font-mono"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end border-t border-border pt-4">
+            <button
+              type="submit"
+              disabled={saving}
+              className="rounded-lg bg-primary px-6 py-2.5 text-sm font-black text-white hover:bg-primary/90 transition-colors disabled:opacity-50"
+            >
+              {saving ? "Guardando..." : "Guardar Configuración"}
+            </button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
+
