@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Bell, ChevronDown, Menu, MessageSquareText, Search, PackagePlus, Clock, LogOut } from "lucide-react";
+import { Bell, ChevronDown, Menu, MessageSquareText, Search, PackagePlus, Clock, LogOut, ShieldAlert } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ type DashboardShellProps = {
 export function DashboardShell({ mode, title, eyebrow, children }: DashboardShellProps) {
   const isAdmin = mode === "admin";
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
 
   const handleLogout = async () => {
@@ -29,17 +30,23 @@ export function DashboardShell({ mode, title, eyebrow, children }: DashboardShel
 
   useEffect(() => {
     const fetchUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", user.id)
-          .single();
-        
-        if (profile) {
-          setUserProfile(profile);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", user.id)
+            .single();
+          
+          if (profile) {
+            setUserProfile(profile);
+          }
         }
+      } catch (err) {
+        console.error("Error loading user profile:", err);
+      } finally {
+        setLoadingProfile(false);
       }
     };
     fetchUser();
@@ -51,7 +58,87 @@ export function DashboardShell({ mode, title, eyebrow, children }: DashboardShel
     : (isAdmin ? "AD" : (mode === "provider" ? "PV" : "..."));
   const userRole = userProfile?.role === "admin" ? "Admin" : (userProfile?.role === "proveedor" ? "Proveedor" : (userProfile?.role === "emprendedor" ? "Emprendedor" : "Usuario"));
 
-  // Bloqueo de seguridad: Si el usuario existe pero no está aprobado, se le muestra la pantalla de espera
+  // 1. Loading Screen
+  if (loadingProfile) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#f7faff]">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  // 2. Admin Authorization & Authentication Gate
+  if (isAdmin) {
+    // If user is not authenticated
+    if (!userProfile) {
+      const handleGoogleLogin = async () => {
+        await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: `${window.location.origin}/auth/callback?next=/admin`,
+          }
+        });
+      };
+
+      return (
+        <div className="relative flex min-h-screen flex-col items-center justify-center bg-[#071a36] p-4 text-center">
+          <div className="absolute top-1/4 left-1/4 h-72 w-72 rounded-full bg-blue-500/10 blur-[120px]" />
+          <div className="absolute bottom-1/4 right-1/4 h-72 w-72 rounded-full bg-indigo-500/10 blur-[120px]" />
+          <div className="relative z-10 w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-8 shadow-[0_20px_60px_rgba(0,0,0,0.3)] backdrop-blur-md md:p-10 text-white">
+            <span className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-white/10 shadow-inner">
+              <ShieldAlert className="h-10 w-10 text-blue-400" />
+            </span>
+            <h2 className="mt-8 text-2xl font-black">Acceso de Administrador</h2>
+            <p className="mt-2 text-sm text-slate-400 font-semibold">Identifícate con tu cuenta autorizada</p>
+
+            <button
+              onClick={handleGoogleLogin}
+              className="mt-8 flex h-14 w-full items-center justify-center gap-3 rounded-md bg-blue-600 px-5 text-base font-black text-white hover:bg-blue-700 transition shadow-[0_10px_25px_rgba(7,91,255,0.3)]"
+            >
+              <span className="text-lg font-black text-white">G</span>
+              Continuar con Google
+            </button>
+            <p className="mt-6 text-xs text-slate-500 font-semibold">Solo usuarios con rol administrativo pueden entrar aquí.</p>
+          </div>
+          <p className="mt-8 text-xs font-semibold text-slate-500">Linkeo © 2026. Panel Administrativo.</p>
+        </div>
+      );
+    }
+
+    // If authenticated but doesn't have role "admin"
+    if (userProfile.role !== "admin") {
+      return (
+        <div className="relative flex min-h-screen flex-col items-center justify-center bg-[#f7faff] p-4 text-center">
+          <div className="relative z-10 w-full max-w-md rounded-2xl border border-border bg-white p-8 shadow-[0_20px_60px_rgba(8,26,58,0.06)] md:p-10">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-600 shadow-inner">
+              <ShieldAlert className="h-8 w-8" />
+            </div>
+            <h2 className="mt-6 text-2xl font-black text-navy">Acceso Denegado</h2>
+            <p className="mt-4 text-sm font-semibold leading-relaxed text-slate-600">
+              Lo sentimos, <span className="text-blue-600">{userProfile.full_name}</span>. No tienes permisos de administrador para visualizar esta sección.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+              <Button
+                onClick={() => window.location.href = "/dashboard"}
+                className="flex h-11 items-center justify-center gap-2 rounded-md bg-blue-600 px-5 text-sm font-black text-white hover:bg-blue-700 transition"
+              >
+                Ir a mi Dashboard
+              </Button>
+              <Button
+                onClick={handleLogout}
+                variant="outline"
+                className="flex h-11 items-center justify-center gap-2 rounded-md border-slate-200 bg-white px-5 text-sm font-black text-slate-700 hover:bg-slate-50 transition"
+              >
+                Cerrar sesión
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+  }
+
+  // 3. Bloqueo de seguridad: Si el usuario existe pero no está aprobado, se le muestra la pantalla de espera
   if (userProfile && userProfile.approved === false && userProfile.role !== "admin") {
     return (
       <div className="relative flex min-h-screen flex-col items-center justify-center bg-[#f7faff] p-4 text-center">
