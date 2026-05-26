@@ -25,6 +25,12 @@ export function DashboardShell({ mode, title, eyebrow, children }: DashboardShel
   const { currentUser: userProfile, loading: loadingProfile } = useOrderStorage();
   const [loggingOut, setLoggingOut] = useState(false);
 
+  useEffect(() => {
+    if (!loadingProfile && !userProfile) {
+      window.location.href = "/login";
+    }
+  }, [userProfile, loadingProfile]);
+
   const handleLogout = async () => {
     setLoggingOut(true);
     await signOut(auth);
@@ -32,10 +38,12 @@ export function DashboardShell({ mode, title, eyebrow, children }: DashboardShel
   };
 
 
-  const userName = userProfile?.full_name || (isAdmin ? "Administrador" : mode === "provider" ? "Proveedor" : "Cargando...");
+  const userName = userProfile?.full_name || userProfile?.email?.split("@")[0] || (isAdmin ? "Administrador" : mode === "provider" ? "Proveedor" : "Usuario");
   const userInitials = userProfile?.full_name
     ? userProfile.full_name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
-    : isAdmin ? "AD" : mode === "provider" ? "PV" : "...";
+    : userProfile?.email
+    ? userProfile.email.slice(0, 2).toUpperCase()
+    : isAdmin ? "AD" : mode === "provider" ? "PV" : "US";
   const userRole =
     userProfile?.role === "admin" ? "Admin" :
     userProfile?.role === "proveedor" ? "Proveedor" :

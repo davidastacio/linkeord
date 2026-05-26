@@ -66,10 +66,10 @@ export function AdminOrdersTable() {
             {orders.map((order: any) => (
               <tr key={order.id} className="border-b border-border last:border-0 hover:bg-secondary/50">
                 <td className="py-4 font-black text-primary">{order.id}</td>
-                <td className="py-4 font-semibold text-navy">{order.entrepreneur}</td>
-                <td className="py-4 text-muted-foreground">{order.customer}</td>
-                <td className="py-4 text-muted-foreground">{order.product}</td>
-                <td className="py-4 font-black text-navy">{order.amount}</td>
+                <td className="py-4 font-semibold text-navy">{order.entrepreneur || order.entrepreneurName || "—"}</td>
+                <td className="py-4 text-muted-foreground">{order.customerName || order.customer || "—"}</td>
+                <td className="py-4 text-muted-foreground">{order.productName || order.product || "—"}</td>
+                <td className="py-4 font-black text-navy">RD$ {Number(order.amount || 0).toLocaleString("en-US")}</td>
                 <td className="py-4 text-sm text-muted-foreground">
                   {order.deliveryName ?? getAgentName(order.deliveryId) ?? "—"}
                 </td>

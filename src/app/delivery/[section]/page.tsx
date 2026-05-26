@@ -87,7 +87,7 @@ export default function DeliverySectionPage({ params }: { params: Promise<{ sect
                         <p className="text-lg font-black text-primary">{order.id}</p>
                         <OrderStatusBadge status={order.status as never} />
                       </div>
-                      <p className="mt-1 text-sm font-bold text-navy">{order.product}</p>
+                      <p className="mt-1 text-sm font-bold text-navy">{order.productName || order.product}</p>
 
                       <div className="mt-4 space-y-2">
                         <div className="flex items-start gap-2 text-sm">
@@ -123,7 +123,7 @@ export default function DeliverySectionPage({ params }: { params: Promise<{ sect
                     </div>
                     <div className="text-right">
                       <p className="text-xs text-muted-foreground">Total</p>
-                      <p className="font-black text-navy">{order.amount}</p>
+                      <p className="font-black text-navy">RD$ {Number(order.amount || 0).toLocaleString("en-US")}</p>
                       <p className="text-xs text-emerald-600 font-bold mt-0.5">+RD$ 200 ganancia</p>
                     </div>
                   </div>

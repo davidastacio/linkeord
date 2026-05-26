@@ -59,16 +59,16 @@ export function EntrepreneurOrdersTable() {
             return (
               <tr key={o.id} className="border-b border-border last:border-0 hover:bg-secondary/50">
                 <td className="py-4 font-black text-primary">{o.id}</td>
-                <td className="py-4 font-semibold text-navy">{o.customer}</td>
-                <td className="py-4 text-muted-foreground">{o.product}</td>
+                <td className="py-4 font-semibold text-navy">{o.customerName || o.customer || "—"}</td>
+                <td className="py-4 text-muted-foreground">{o.productName || o.product || "—"}</td>
                 <td className="py-4 text-muted-foreground">{o.date}</td>
                 <td className="py-4"><OrderStatusBadge status={o.status as never} /></td>
                 <td className="py-4 text-sm text-muted-foreground">
                   {agentName ?? <span className="text-xs italic text-muted-foreground/60">Sin asignar</span>}
                 </td>
-                <td className="py-4 font-bold text-navy">{o.amount}</td>
+                <td className="py-4 font-bold text-navy">RD$ {Number(o.amount || 0).toLocaleString("en-US")}</td>
                 <td className={`py-4 font-bold ${isDelivered ? "text-emerald-600" : "text-muted-foreground"}`}>
-                  {isDelivered ? o.profit : "—"}
+                  {isDelivered ? `RD$ ${Number(o.profit || 0).toLocaleString("en-US")}` : "—"}
                 </td>
                 <td className="py-4">
                   <button
