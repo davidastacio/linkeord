@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { db } from "@/lib/firebase";
+import { collection, query, onSnapshot, doc, updateDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
-import { OrderStatusBadge } from "@/components/order-status-badge";
 import { Check, ShieldAlert, X, Search, ShieldCheck } from "lucide-react";
 
 export function AdminProfilesTable() {
@@ -13,107 +13,78 @@ export function AdminProfilesTable() {
   const [searchQuery, setSearchQuery] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  // Fetch profiles from Supabase
-  const fetchProfiles = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .order("created_at", { ascending: false } as any); // Fallback order if created_at is not present
-
-    if (error) {
-      console.error("Error fetching profiles:", error.message);
-      // Fallback: If query fails, let's select without ordering
-      const { data: rawData, error: rawError } = await supabase.from("profiles").select("*");
-      if (!rawError) {
-        setProfiles(rawData || []);
-      }
-    } else {
-      setProfiles(data || []);
-    }
-    setLoading(false);
-  };
-
   useEffect(() => {
-    fetchProfiles();
+    // Real-time listener from Firestore
+    const unsubscribe = onSnapshot(collection(db, "profiles"), (snap) => {
+      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      // Sort by created_at descending
+      data.sort((a: any, b: any) => {
+        const aTime = a.created_at?.seconds || 0;
+        const bTime = b.created_at?.seconds || 0;
+        return bTime - aTime;
+      });
+      setProfiles(data);
+      setLoading(false);
+    });
+    return () => unsubscribe();
   }, []);
 
-  // Update approved status in Supabase
   const handleToggleApproval = async (profileId: string, currentStatus: boolean) => {
     setActionLoading(profileId);
     const newStatus = !currentStatus;
-
-    const { error } = await supabase
-      .from("profiles")
-      .update({ approved: newStatus })
-      .eq("id", profileId);
-
-    if (error) {
-      console.error("Error updating profile status:", error.message);
-      alert("Hubo un error al actualizar el acceso: " + error.message);
-    } else {
-      // Update local state
-      setProfiles((prev) =>
-        prev.map((p) => (p.id === profileId ? { ...p, approved: newStatus } : p))
-      );
+    try {
+      await updateDoc(doc(db, "profiles", profileId), { approved: newStatus });
+      // Firestore real-time will update state automatically
+    } catch (err: any) {
+      console.error("Error updating approval:", err);
+      alert("Error al actualizar el acceso: " + err.message);
+    } finally {
+      setActionLoading(null);
     }
-    setActionLoading(null);
   };
 
-  // Filter & Search logic
   const filteredProfiles = profiles.filter((p) => {
     const isApproved = p.approved === true || p.role === "admin";
     const isPending = p.approved !== true && p.role !== "admin";
 
-    // 1. Filter by status
     if (filter === "pendientes" && !isPending) return false;
     if (filter === "aprobados" && !isApproved) return false;
 
-    // 2. Search query
     if (searchQuery.trim() !== "") {
-      const query = searchQuery.toLowerCase();
-      const nameMatch = p.full_name?.toLowerCase().includes(query);
-      const emailMatch = p.email?.toLowerCase().includes(query);
-      const roleMatch = p.role?.toLowerCase().includes(query);
-      return nameMatch || emailMatch || roleMatch;
+      const q = searchQuery.toLowerCase();
+      return (
+        p.full_name?.toLowerCase().includes(q) ||
+        p.email?.toLowerCase().includes(q) ||
+        p.role?.toLowerCase().includes(q)
+      );
     }
-
     return true;
   });
 
   return (
     <div className="space-y-6">
-      {/* Filters & Search Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        {/* Toggle Filters */}
         <div className="flex gap-2 rounded-lg bg-secondary p-1 text-sm">
           <button
             onClick={() => setFilter("todos")}
-            className={`rounded-md px-4 py-2 font-bold transition-all ${
-              filter === "todos" ? "bg-white text-primary shadow-sm" : "text-muted-foreground hover:text-navy"
-            }`}
+            className={`rounded-md px-4 py-2 font-bold transition-all ${filter === "todos" ? "bg-white text-primary shadow-sm" : "text-muted-foreground hover:text-navy"}`}
           >
             Todos ({profiles.length})
           </button>
           <button
             onClick={() => setFilter("pendientes")}
-            className={`rounded-md px-4 py-2 font-bold transition-all ${
-              filter === "pendientes" ? "bg-white text-amber-600 shadow-sm" : "text-muted-foreground hover:text-navy"
-            }`}
+            className={`rounded-md px-4 py-2 font-bold transition-all ${filter === "pendientes" ? "bg-white text-amber-600 shadow-sm" : "text-muted-foreground hover:text-navy"}`}
           >
             Pendientes ({profiles.filter((p) => p.approved !== true && p.role !== "admin").length})
           </button>
           <button
             onClick={() => setFilter("aprobados")}
-            className={`rounded-md px-4 py-2 font-bold transition-all ${
-              filter === "aprobados" ? "bg-white text-emerald-600 shadow-sm" : "text-muted-foreground hover:text-navy"
-            }`}
+            className={`rounded-md px-4 py-2 font-bold transition-all ${filter === "aprobados" ? "bg-white text-emerald-600 shadow-sm" : "text-muted-foreground hover:text-navy"}`}
           >
             Aprobados ({profiles.filter((p) => p.approved === true || p.role === "admin").length})
           </button>
         </div>
 
-        {/* Search Input */}
         <div className="relative flex h-11 w-full max-w-xs items-center gap-2 rounded-md border border-border bg-white px-3 text-muted-foreground shadow-sm">
           <Search className="h-4 w-4" />
           <input
@@ -126,7 +97,6 @@ export function AdminProfilesTable() {
         </div>
       </div>
 
-      {/* Main Table */}
       <div className="overflow-x-auto rounded-lg border border-border bg-white">
         <table className="w-full min-w-[800px] text-left text-sm">
           <thead className="text-xs text-muted-foreground uppercase bg-slate-50 border-b border-border">
@@ -162,7 +132,6 @@ export function AdminProfilesTable() {
 
                 return (
                   <tr key={p.id} className="hover:bg-slate-50/50 transition">
-                    {/* Name */}
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <span className="grid h-9 w-9 place-items-center rounded-full bg-blue-50 font-black text-primary">
@@ -175,10 +144,8 @@ export function AdminProfilesTable() {
                       </div>
                     </td>
 
-                    {/* Email */}
                     <td className="px-4 py-4 font-semibold text-slate-600">{p.email}</td>
 
-                    {/* Role */}
                     <td className="px-4 py-4">
                       <span className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-bold capitalize ${
                         p.role === "admin"
@@ -191,31 +158,23 @@ export function AdminProfilesTable() {
                       </span>
                     </td>
 
-                    {/* Status Badge */}
                     <td className="px-4 py-4">
                       {isApproved ? (
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 ring-1 ring-inset ring-emerald-600/10">
                           <Check className="h-3 w-3" />
                           Aprobado
                         </span>
-                      ) : isPending ? (
+                      ) : (
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700 ring-1 ring-inset ring-amber-600/10">
                           <ShieldAlert className="h-3 w-3" />
                           Pendiente
                         </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-700 ring-1 ring-inset ring-slate-600/10">
-                          Desconocido (Activo)
-                        </span>
                       )}
                     </td>
 
-                    {/* Actions */}
                     <td className="px-6 py-4 text-right">
                       {isUserAdmin ? (
-                        <span className="text-xs font-bold text-muted-foreground/80 italic">
-                          Admin auto-aprobado
-                        </span>
+                        <span className="text-xs font-bold text-muted-foreground/80 italic">Admin auto-aprobado</span>
                       ) : (
                         <div className="flex justify-end gap-2">
                           {isPending ? (

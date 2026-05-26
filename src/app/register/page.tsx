@@ -5,7 +5,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Lock, Mail, Package, Phone, Truck, User, Store } from "lucide-react";
 import { AuthShell } from "@/components/auth/auth-shell";
-import { supabase } from "@/lib/supabase";
+import { auth, db } from "@/lib/firebase";
+import {
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
+  updateProfile,
+} from "firebase/auth";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -16,13 +23,34 @@ export default function RegisterPage() {
     password: "",
     confirmPassword: "",
     role: "emprendedor",
-    acceptedTerms: false
+    acceptedTerms: false,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const createProfileAndRedirect = async (
+    uid: string,
+    email: string | null,
+    displayName: string,
+    role: string
+  ) => {
+    await setDoc(doc(db, "profiles", uid), {
+      email,
+      full_name: displayName,
+      role,
+      phone: formData.phone || "",
+      approved: false,
+      created_at: serverTimestamp(),
+    });
+
+    if (role === "admin") router.push("/admin");
+    else if (role === "proveedor") router.push("/provider");
+    else if (role === "delivery") router.push("/delivery");
+    else router.push("/dashboard");
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -42,65 +70,34 @@ export default function RegisterPage() {
       return;
     }
 
-    // Sign up with Supabase Auth
-    const { data: signUpData, error: authError } = await supabase.auth.signUp({
-      email: formData.email,
-      password: formData.password,
-      options: {
-        data: {
-          full_name: formData.name,
-          role: formData.role,
-        }
-      }
-    });
-
-    if (authError) {
-      setError(authError.message);
-      setLoading(false);
-      return;
-    }
-
-    // Try to insert into profiles table (will need INSERT policy in Supabase)
-    if (signUpData.user) {
-      const { error: profileError } = await supabase.from("profiles").insert([
-        {
-          id: signUpData.user.id,
-          email: formData.email,
-          full_name: formData.name,
-          role: formData.role,
-          approved: false,
-        }
-      ]);
-
-      if (profileError) {
-        console.error("Error creating profile:", profileError.message);
-        // We'll log it but still redirect to dashboard for now
-      }
-
-      if (formData.role === "admin") {
-        router.push("/admin");
-      } else if (formData.role === "proveedor") {
-        router.push("/provider");
-      } else {
-        router.push("/dashboard");
-      }
-    } else {
+    try {
+      const { user } = await createUserWithEmailAndPassword(
+        auth,
+        formData.email,
+        formData.password
+      );
+      await updateProfile(user, { displayName: formData.name });
+      await createProfileAndRedirect(user.uid, user.email, formData.name, formData.role);
+    } catch (err: any) {
+      setError(err.message || "Error al crear la cuenta.");
       setLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
-        },
-      }
-    });
-    if (error) setError(error.message);
+    try {
+      const provider = new GoogleAuthProvider();
+      const { user } = await signInWithPopup(auth, provider);
+      // For Google sign-in from register page, default role is emprendedor
+      await createProfileAndRedirect(
+        user.uid,
+        user.email,
+        user.displayName || user.email?.split("@")[0] || "Usuario",
+        formData.role
+      );
+    } catch (err: any) {
+      setError(err.message);
+    }
   };
 
   return (
@@ -123,7 +120,7 @@ export default function RegisterPage() {
               {error}
             </div>
           )}
-          
+
           <label className="relative block">
             <span className="sr-only">Nombre completo</span>
             <User className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
@@ -204,9 +201,7 @@ export default function RegisterPage() {
                 </span>
                 <span>
                   <span className={`block text-sm font-black ${formData.role === "emprendedor" ? "text-blue-700" : "text-slate-950"}`}>Emprendedor</span>
-                  <span className="block text-xs font-semibold leading-5 text-slate-600">
-                    Vende productos y gestiona tu negocio
-                  </span>
+                  <span className="block text-xs font-semibold leading-5 text-slate-600">Vende productos y gestiona tu negocio</span>
                 </span>
               </label>
 
@@ -217,9 +212,7 @@ export default function RegisterPage() {
                 </span>
                 <span>
                   <span className={`block text-sm font-black ${formData.role === "proveedor" ? "text-blue-700" : "text-slate-950"}`}>Proveedor</span>
-                  <span className="block text-xs font-semibold leading-5 text-slate-600">
-                    Sube tus productos y surte al catálogo
-                  </span>
+                  <span className="block text-xs font-semibold leading-5 text-slate-600">Sube tus productos y surte al catálogo</span>
                 </span>
               </label>
 
@@ -230,9 +223,7 @@ export default function RegisterPage() {
                 </span>
                 <span>
                   <span className={`block text-sm font-black ${formData.role === "delivery" ? "text-blue-700" : "text-slate-950"}`}>Delivery</span>
-                  <span className="block text-xs font-semibold leading-5 text-slate-600">
-                    Realiza entregas y gana comisiones
-                  </span>
+                  <span className="block text-xs font-semibold leading-5 text-slate-600">Realiza entregas y gana comisiones</span>
                 </span>
               </label>
             </div>
@@ -243,7 +234,7 @@ export default function RegisterPage() {
               type="button"
               onClick={() => setFormData({ ...formData, acceptedTerms: !formData.acceptedTerms })}
               className={`mt-1 flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded border transition-colors ${
-                formData.acceptedTerms ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300 bg-white hover:border-blue-400'
+                formData.acceptedTerms ? "bg-blue-600 border-blue-600 text-white" : "border-slate-300 bg-white hover:border-blue-400"
               }`}
             >
               {formData.acceptedTerms && (
@@ -279,23 +270,14 @@ export default function RegisterPage() {
             <span className="h-px flex-1 bg-slate-200" />
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <button
-              type="button"
-              onClick={handleGoogleLogin}
-              className="flex h-11 items-center justify-center gap-3 rounded-md border border-slate-200 bg-white px-4 text-sm font-black text-slate-950 shadow-sm transition hover:bg-slate-50"
-            >
-              <span className="text-lg font-black text-blue-600">G</span>
-              Continuar con Google
-            </button>
-            <button
-              type="button"
-              className="flex h-11 items-center justify-center gap-3 rounded-md border border-slate-200 bg-white px-4 text-sm font-black text-slate-950 shadow-sm transition hover:bg-slate-50"
-            >
-              <span className="text-xl leading-none text-black">●</span>
-              Continuar con Apple
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            className="flex h-11 items-center justify-center gap-3 rounded-md border border-slate-200 bg-white px-4 text-sm font-black text-slate-950 shadow-sm transition hover:bg-slate-50"
+          >
+            <span className="text-lg font-black text-blue-600">G</span>
+            Continuar con Google
+          </button>
         </form>
 
         <p className="mt-6 text-center text-sm font-semibold text-slate-600">

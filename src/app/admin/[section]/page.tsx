@@ -4,7 +4,8 @@ import { use, useEffect, useState } from "react";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { supabase } from "@/lib/supabase";
+import { db } from "@/lib/firebase";
+import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { AdminOrdersTable } from "@/components/order-flow/AdminOrdersTable";
 import { AdminProfilesTable } from "@/components/admin/AdminProfilesTable";
 
@@ -41,42 +42,30 @@ export default function AdminSectionPage({
   const [earnings, setEarnings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+
   useEffect(() => {
-    const fetchData = async () => {
-      const [ordersRes, profilesRes, productsRes, earningsRes] = await Promise.all([
-        supabase.from("orders").select("*").order("date", { ascending: false }),
-        supabase.from("profiles").select("*"),
-        supabase.from("products").select("*").order("created_at", { ascending: false }),
-        supabase.from("earnings").select("*").order("created_at", { ascending: false })
-      ]);
-
-      if (ordersRes.data) setOrders(ordersRes.data);
-      if (profilesRes.data) setProfiles(profilesRes.data);
-      if (productsRes.data) {
-        const mappedProducts = productsRes.data.map((p: any) => ({
-          ...p,
-          supplierId: p.supplierid || p.supplierId,
-        }));
-        setProducts(mappedProducts);
-      }
-      if (earningsRes.data) setEarnings(earningsRes.data);
-      setLoading(false);
-    };
-
-    fetchData();
-
-    // Subscribe to realtime updates
-    const channelName = `admin_sec_realtime_${Math.random().toString(36).slice(2, 11)}`;
-    const subscription = supabase
-      .channel(channelName)
-      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => fetchData())
-      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => fetchData())
-      .on("postgres_changes", { event: "*", schema: "public", table: "products" }, () => fetchData())
-      .on("postgres_changes", { event: "*", schema: "public", table: "earnings" }, () => fetchData())
-      .subscribe();
+    const unsubOrders = onSnapshot(
+      query(collection(db, "orders"), orderBy("date", "desc")),
+      (snap) => { setOrders(snap.docs.map((d) => ({ id: d.id, ...d.data() }))); setLoading(false); },
+      () => setLoading(false)
+    );
+    const unsubProfiles = onSnapshot(collection(db, "profiles"), (snap) => {
+      setProfiles(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+    const unsubProducts = onSnapshot(
+      query(collection(db, "products"), orderBy("created_at", "desc")),
+      (snap) => { setProducts(snap.docs.map((d) => ({ id: d.id, ...d.data() }))); }
+    );
+    const unsubEarnings = onSnapshot(
+      query(collection(db, "earnings"), orderBy("created_at", "desc")),
+      (snap) => { setEarnings(snap.docs.map((d) => ({ id: d.id, ...d.data() }))); }
+    );
 
     return () => {
-      supabase.removeChannel(subscription);
+      unsubOrders();
+      unsubProfiles();
+      unsubProducts();
+      unsubEarnings();
     };
   }, []);
 

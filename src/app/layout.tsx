@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { OrderStorageProvider } from "@/components/order-flow/store";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -21,8 +22,11 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
-        {children}
+        <OrderStorageProvider>
+          {children}
+        </OrderStorageProvider>
       </body>
     </html>
   );
 }
+

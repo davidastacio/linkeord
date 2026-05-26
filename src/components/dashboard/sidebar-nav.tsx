@@ -139,7 +139,7 @@ const supplierNav: NavGroup[] = [
 ];
 
 type SidebarNavProps = {
-  mode: "dashboard" | "admin" | "provider";
+  mode: "dashboard" | "admin" | "provider" | "delivery";
 };
 
 export function SidebarNav({ mode }: SidebarNavProps) {
@@ -149,7 +149,7 @@ export function SidebarNav({ mode }: SidebarNavProps) {
       ? adminNav 
       : mode === "provider" 
       ? supplierNav 
-      : entrepreneurNav;
+      : entrepreneurNav; // delivery and dashboard both use entrepreneurNav
   const isAdmin = mode === "admin";
 
   return (

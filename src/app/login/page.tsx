@@ -6,7 +6,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, Lock, Mail } from "lucide-react";
 import { AuthShell } from "@/components/auth/auth-shell";
-import { supabase } from "@/lib/supabase";
+import { auth, db } from "@/lib/firebase";
+import {
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
+} from "firebase/auth";
+import { doc, getDoc, collection, query, where, getDocs, setDoc } from "firebase/firestore";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,55 +21,70 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const redirectByRole = (role: string) => {
+    if (role === "admin") router.push("/admin");
+    else if (role === "proveedor") router.push("/provider");
+    else if (role === "delivery") router.push("/delivery");
+    else router.push("/dashboard");
+  };
+
+  const getRoleForUser = async (user: any): Promise<string> => {
+    // 1. Try to fetch profile directly by UID
+    const profileSnap = await getDoc(doc(db, "profiles", user.uid));
+    if (profileSnap.exists()) {
+      return profileSnap.data().role || "emprendedor";
+    }
+
+    // 2. Fallback: Search by email in case profile was created with a different key/id
+    if (user.email) {
+      const q = query(collection(db, "profiles"), where("email", "==", user.email));
+      const querySnap = await getDocs(q);
+      if (!querySnap.empty) {
+        const foundDoc = querySnap.docs[0];
+        const data = foundDoc.data();
+        const role = data.role || "emprendedor";
+        // Self-heal: link UID to the profile data
+        try {
+          await setDoc(doc(db, "profiles", user.uid), {
+            ...data,
+            email: user.email,
+          });
+        } catch (e) {
+          console.warn("Failed to auto-heal profile document:", e);
+        }
+        return role;
+      }
+    }
+
+    return "emprendedor";
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (signInError) {
+    try {
+      const { user } = await signInWithEmailAndPassword(auth, email, password);
+      const role = await getRoleForUser(user);
+      redirectByRole(role);
+    } catch {
       setError("Correo o contraseña incorrectos");
-      setLoading(false);
-      return;
-    }
-
-    // After login, check the user's role from the profiles table
-    if (signInData?.user) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", signInData.user.id)
-        .single();
-      
-      if (profile?.role === "admin") {
-        router.push("/admin");
-      } else if (profile?.role === "proveedor") {
-        router.push("/provider");
-      } else {
-        router.push("/dashboard");
-      }
-    } else {
       setLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
-        },
-      }
-    });
-    if (error) setError(error.message);
+    try {
+      const provider = new GoogleAuthProvider();
+      const { user } = await signInWithPopup(auth, provider);
+      const role = await getRoleForUser(user);
+      redirectByRole(role);
+    } catch (err: any) {
+      setError(err.message);
+    }
   };
+
 
   return (
     <AuthShell
@@ -146,13 +167,6 @@ export default function LoginPage() {
           >
             <span className="text-lg font-black text-blue-600">G</span>
             Continuar con Google
-          </button>
-          <button
-            type="button"
-            className="flex h-12 items-center justify-center gap-3 rounded-md border border-slate-200 bg-white px-4 text-sm font-black text-slate-950 shadow-sm transition hover:bg-slate-50"
-          >
-            <span className="text-xl leading-none text-black">●</span>
-            Continuar con Apple
           </button>
         </form>
 

@@ -1,0 +1,23 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Profiles: users can read/write their own, admins can read all
+    match /profiles/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if request.auth != null && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+    }
+    // Products: providers can write their own, everyone authenticated can read
+    match /products/{productId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    // Orders: authenticated users can read/write
+    match /orders/{orderId} {
+      allow read, write: if request.auth != null;
+    }
+    // Earnings: authenticated users can read/write
+    match /earnings/{earningId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

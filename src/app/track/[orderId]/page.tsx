@@ -1,11 +1,9 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
-import { CheckCircle2, Circle, Clock, MapPin, Package, Phone, Truck } from "lucide-react";
-import { recentOrders } from "@/lib/mock-data";
-import { deliveryAgents } from "@/lib/mock";
-import { supabase } from "@/lib/supabase";
-
+import { CheckCircle2, Circle, Clock, MapPin, Package, Truck } from "lucide-react";
+import { db } from "@/lib/firebase";
+import { doc, onSnapshot } from "firebase/firestore";
 
 const ALL_STEPS = [
   { key: "Pendiente", label: "Pedido recibido", icon: Package },
@@ -18,14 +16,8 @@ const ALL_STEPS = [
 ];
 
 const STATUS_ORDER = [
-  "Pendiente",
-  "Confirmado",
-  "Solicitado a tienda",
-  "Delivery asignado",
-  "Recogido",
-  "En camino",
-  "Entregado",
-  "Pagado",
+  "Pendiente", "Confirmado", "Solicitado a tienda", "Delivery asignado",
+  "Recogido", "En camino", "Entregado", "Pagado",
 ];
 
 function getStatusIndex(status: string) {
@@ -39,39 +31,24 @@ export default function TrackingPage({ params }: { params: Promise<{ orderId: st
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchOrder = async () => {
-      const normalizedId = orderId.startsWith("#") ? orderId : `#${orderId}`;
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("id", normalizedId)
-        .single();
-      
-      if (!error && data) {
-        setOrder(data);
+    // In Firestore, orderId is the document ID (e.g., "#12345" or the auto-generated ID)
+    // We'll try to find the order by its document ID
+    const normalizedId = orderId.startsWith("#") ? orderId : `#${orderId}`;
+
+    // Listen to orders collection for real-time updates
+    const unsubscribe = onSnapshot(doc(db, "orders", normalizedId), (docSnap) => {
+      if (docSnap.exists()) {
+        setOrder({ id: docSnap.id, ...docSnap.data() });
       } else {
         setOrder(null);
       }
       setLoading(false);
-    };
+    }, () => {
+      setOrder(null);
+      setLoading(false);
+    });
 
-    fetchOrder();
-
-    const normalizedId = orderId.startsWith("#") ? orderId : `#${orderId}`;
-    const subscription = supabase
-      .channel(`order_tracking_${normalizedId}`)
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${normalizedId}` },
-        (payload) => {
-          setOrder(payload.new);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(subscription);
-    };
+    return () => unsubscribe();
   }, [orderId]);
 
   if (loading) {
@@ -106,16 +83,12 @@ export default function TrackingPage({ params }: { params: Promise<{ orderId: st
 
   const isCancelled = order.status === "Cancelado";
   const currentIdx = getStatusIndex(order.status);
-  const agent = deliveryAgents.find(a => a.id === (order.deliveryId ?? ""));
-  const agentName = order.deliveryName ?? agent?.name ?? null;
+  const agentName = order.deliveryName ?? null;
   const isDelivered = order.status === "Entregado" || order.status === "Pagado";
-
-  // Steps to show (exclude "Pagado" from visual progress)
   const steps = ALL_STEPS;
 
   return (
     <div className="min-h-screen bg-[#f7faff]">
-      {/* Header */}
       <header className="sticky top-0 z-10 border-b border-border bg-white/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-xl items-center justify-between px-4 py-4">
           <div>
@@ -123,11 +96,7 @@ export default function TrackingPage({ params }: { params: Promise<{ orderId: st
             <p className="text-sm font-bold text-navy">Seguimiento de pedido</p>
           </div>
           {!isCancelled && (
-            <span className={`rounded-full px-4 py-1.5 text-xs font-black ${
-              isDelivered
-                ? "bg-emerald-100 text-emerald-700"
-                : "bg-amber-100 text-amber-700"
-            }`}>
+            <span className={`rounded-full px-4 py-1.5 text-xs font-black ${isDelivered ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
               {order.status}
             </span>
           )}
@@ -135,8 +104,6 @@ export default function TrackingPage({ params }: { params: Promise<{ orderId: st
       </header>
 
       <main className="mx-auto max-w-xl px-4 py-6 space-y-5">
-
-        {/* Order summary card */}
         <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between gap-4">
             <div>
@@ -173,7 +140,6 @@ export default function TrackingPage({ params }: { params: Promise<{ orderId: st
           </div>
         </div>
 
-        {/* Progress tracker */}
         {!isCancelled && (
           <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
             <p className="mb-5 text-sm font-black uppercase text-muted-foreground">Progreso del pedido</p>
@@ -182,36 +148,25 @@ export default function TrackingPage({ params }: { params: Promise<{ orderId: st
                 const stepIdx = getStatusIndex(step.key);
                 const done = stepIdx < currentIdx;
                 const active = step.key === order.status || (order.status === "Pagado" && step.key === "Entregado");
-                const pending = stepIdx > currentIdx;
                 const Icon = step.icon;
                 return (
                   <div key={step.key} className="flex items-start gap-4">
-                    {/* Icon + connector */}
                     <div className="flex flex-col items-center">
                       <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
-                        done
-                          ? "border-emerald-500 bg-emerald-500 text-white"
-                          : active
-                          ? "border-primary bg-primary text-white shadow-md"
-                          : "border-border bg-white text-muted-foreground"
+                        done ? "border-emerald-500 bg-emerald-500 text-white" :
+                        active ? "border-primary bg-primary text-white shadow-md" :
+                        "border-border bg-white text-muted-foreground"
                       }`}>
-                        {done ? (
-                          <CheckCircle2 className="h-4 w-4" />
-                        ) : active ? (
-                          <Icon className="h-4 w-4" />
-                        ) : (
-                          <Circle className="h-4 w-4" />
-                        )}
+                        {done ? <CheckCircle2 className="h-4 w-4" /> :
+                         active ? <Icon className="h-4 w-4" /> :
+                         <Circle className="h-4 w-4" />}
                       </div>
                       {idx < steps.length - 1 && (
                         <div className={`my-1 h-8 w-0.5 ${done ? "bg-emerald-400" : "bg-border"}`} />
                       )}
                     </div>
-                    {/* Label */}
                     <div className="pb-2 pt-1.5">
-                      <p className={`text-sm font-bold ${
-                        active ? "text-primary" : done ? "text-emerald-700" : "text-muted-foreground"
-                      }`}>
+                      <p className={`text-sm font-bold ${active ? "text-primary" : done ? "text-emerald-700" : "text-muted-foreground"}`}>
                         {step.label}
                       </p>
                       {active && order.statusHistory && (() => {
@@ -219,10 +174,7 @@ export default function TrackingPage({ params }: { params: Promise<{ orderId: st
                         if (!entry) return null;
                         return (
                           <p className="mt-0.5 text-xs text-muted-foreground">
-                            {new Date(entry.timestamp).toLocaleString("es-DO", {
-                              dateStyle: "short",
-                              timeStyle: "short",
-                            })}
+                            {new Date(entry.timestamp).toLocaleString("es-DO", { dateStyle: "short", timeStyle: "short" })}
                           </p>
                         );
                       })()}
@@ -234,7 +186,6 @@ export default function TrackingPage({ params }: { params: Promise<{ orderId: st
           </div>
         )}
 
-        {/* Cancelled banner */}
         {isCancelled && (
           <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
             <p className="font-black text-red-700">Pedido cancelado</p>
@@ -245,7 +196,6 @@ export default function TrackingPage({ params }: { params: Promise<{ orderId: st
           </div>
         )}
 
-        {/* Delivery info (shown when assigned) */}
         {agentName && !isCancelled && (
           <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
             <p className="mb-3 text-sm font-black uppercase text-muted-foreground">Tu delivery</p>
@@ -255,18 +205,11 @@ export default function TrackingPage({ params }: { params: Promise<{ orderId: st
               </div>
               <div>
                 <p className="font-black text-navy">{agentName}</p>
-                {agent && (
-                  <>
-                    <p className="text-sm text-muted-foreground">{agent.zone} · {agent.vehicle}</p>
-                    <p className="text-sm text-muted-foreground">{agent.rating} ★ · {agent.deliveries} entregas</p>
-                  </>
-                )}
               </div>
             </div>
           </div>
         )}
 
-        {/* Delivery address */}
         {order.deliveryAddress && (
           <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
             <p className="mb-2 text-sm font-black uppercase text-muted-foreground">Dirección de entrega</p>
@@ -277,7 +220,6 @@ export default function TrackingPage({ params }: { params: Promise<{ orderId: st
           </div>
         )}
 
-        {/* Delivered banner */}
         {isDelivered && (
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center">
             <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-500" />
@@ -286,19 +228,14 @@ export default function TrackingPage({ params }: { params: Promise<{ orderId: st
           </div>
         )}
 
-        {/* Support */}
         <div className="rounded-2xl border border-border bg-white p-5 shadow-sm text-center">
           <p className="text-sm font-bold text-navy">¿Problemas con tu pedido?</p>
           <p className="mt-1 text-xs text-muted-foreground">Nuestro equipo te ayuda 24/7.</p>
-          <a
-            href="mailto:soporte@linkeo.do"
-            className="mt-3 inline-block rounded-md bg-primary px-6 py-2 text-sm font-black text-white hover:bg-primary/90"
-          >
+          <a href="mailto:soporte@linkeo.do" className="mt-3 inline-block rounded-md bg-primary px-6 py-2 text-sm font-black text-white hover:bg-primary/90">
             Contactar soporte
           </a>
         </div>
 
-        {/* Footer */}
         <p className="pb-4 text-center text-xs text-muted-foreground">
           Linkeo · {new Date().getFullYear()} · Todos los derechos reservados
         </p>
