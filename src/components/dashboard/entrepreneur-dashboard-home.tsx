@@ -6,11 +6,6 @@ import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { DonutSummary, SeriesChart, TinyTrend } from "@/components/dashboard/charts";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  entrepreneurEarningsBreakdown,
-  revenueSeries,
-  tinySalesSeries
-} from "@/lib/mock-data";
 import { useOrderStorage } from "@/components/order-flow/store";
 import Link from "next/link";
 
@@ -18,13 +13,14 @@ export function EntrepreneurDashboardHome() {
   const { orders, localEarnings, currentUser, products } = useOrderStorage();
 
   // Calculate real stats
-  const totalEarned = localEarnings.reduce((acc, curr) => acc + (curr.type === "venta" ? curr.amount : 0), 0);
+  const totalEarned = localEarnings.reduce((acc, curr) => acc + (curr.type === "venta" ? Number(curr.amount) : 0), 0);
   const deliveredOrders = orders.filter(o => o.status === "Entregado").length;
   
   // Real customers from orders
   const customerMap = new Map();
   orders.forEach(order => {
-    customerMap.set(order.customerEmail, true);
+    if (order.customerEmail) customerMap.set(order.customerEmail, true);
+    else if (order.customerPhone) customerMap.set(order.customerPhone, true);
   });
   const uniqueCustomers = customerMap.size;
 
@@ -32,7 +28,7 @@ export function EntrepreneurDashboardHome() {
     {
       label: "Ganancias totales",
       value: `RD$ ${totalEarned.toLocaleString("en-US")}`,
-      trend: totalEarned > 0 ? "100%" : "0%",
+      trend: totalEarned > 0 ? "+100%" : "0%",
       icon: Eye,
       color: "#ffffff",
       dataKey: "ventas",
@@ -41,7 +37,7 @@ export function EntrepreneurDashboardHome() {
     {
       label: "Ventas totales",
       value: orders.length.toString(),
-      trend: orders.length > 0 ? "100%" : "0%",
+      trend: orders.length > 0 ? "+100%" : "0%",
       icon: ShoppingBag,
       color: "#075BFF",
       dataKey: "ventas"
@@ -49,7 +45,7 @@ export function EntrepreneurDashboardHome() {
     {
       label: "Pedidos entregados",
       value: deliveredOrders.toString(),
-      trend: deliveredOrders > 0 ? "100%" : "0%",
+      trend: deliveredOrders > 0 ? "+100%" : "0%",
       icon: PackageCheck,
       color: "#20C997",
       dataKey: "pedidos"
@@ -57,7 +53,7 @@ export function EntrepreneurDashboardHome() {
     {
       label: "Clientes registrados",
       value: uniqueCustomers.toString(),
-      trend: uniqueCustomers > 0 ? "100%" : "0%",
+      trend: uniqueCustomers > 0 ? "+100%" : "0%",
       icon: UserPlus,
       color: "#7C4DFF",
       dataKey: "clientes"
@@ -65,6 +61,35 @@ export function EntrepreneurDashboardHome() {
   ];
 
   const recentOrders = orders.slice(0, 5);
+
+  // Dynamic earnings breakdown
+  const salesEarnings = localEarnings.filter((item) => item.type === "venta").reduce((sum, item) => sum + Number(item.amount), 0);
+  const bonusEarnings = localEarnings.filter((item) => item.type === "bono").reduce((sum, item) => sum + Number(item.amount), 0);
+  const withdrawalEarnings = localEarnings.filter((item) => item.type === "retiro").reduce((sum, item) => sum + Number(item.amount), 0);
+  const earningsBase = salesEarnings + bonusEarnings + Math.abs(withdrawalEarnings) || 1;
+
+  const entrepreneurEarningsBreakdownData = [
+    { name: "Ganancia por ventas", value: Number(((salesEarnings / earningsBase) * 100).toFixed(1)), amount: `RD$ ${salesEarnings.toLocaleString("en-US")}`, color: "#20C997" },
+    { name: "Bonos y promociones", value: Number(((bonusEarnings / earningsBase) * 100).toFixed(1)), amount: `RD$ ${bonusEarnings.toLocaleString("en-US")}`, color: "#075BFF" },
+    { name: "Retiros", value: Number(((Math.abs(withdrawalEarnings) / earningsBase) * 100).toFixed(1)), amount: `RD$ ${Math.abs(withdrawalEarnings).toLocaleString("en-US")}`, color: "#7C4DFF" }
+  ];
+
+  // Dynamic time series for rendering performance chart
+  const performanceGroups: Record<string, { ventas: number; ganancias: number }> = {};
+  orders.slice(0, 30).reverse().forEach((o) => {
+    const day = o.date ? new Date(o.date).toLocaleDateString("es-DO", { day: "numeric", month: "short" }) : "Hoy";
+    if (!performanceGroups[day]) {
+      performanceGroups[day] = { ventas: 0, ganancias: 0 };
+    }
+    performanceGroups[day].ventas += Number(o.amount) || 0;
+    performanceGroups[day].ganancias += Number(o.profit) || 0;
+  });
+
+  const revenueSeriesData = Object.entries(performanceGroups).map(([month, data]) => ({
+    month,
+    ventas: data.ventas,
+    ganancias: data.ganancias
+  }));
 
   return (
     <DashboardShell mode="dashboard" eyebrow="Resumen de tu negocio." title={`¡Bienvenido, ${currentUser?.full_name?.split(" ")[0] || "Emprendedor"}!`}>
@@ -111,11 +136,11 @@ export function EntrepreneurDashboardHome() {
                             <span className="font-semibold text-navy/85">{order.productName}</span>
                           </div>
                         </td>
-                        <td className="px-4 py-4 text-muted-foreground">{new Date(order.createdAt).toLocaleDateString()}</td>
+                        <td className="px-4 py-4 text-muted-foreground">{new Date(order.date || order.createdAt).toLocaleDateString()}</td>
                         <td className="px-4 py-4">
                           <OrderStatusBadge status={order.status} />
                         </td>
-                        <td className="px-6 py-4 font-black text-navy">RD$ {order.profit?.toLocaleString("en-US")}</td>
+                        <td className="px-6 py-4 font-black text-navy">RD$ {Number(order.profit || 0).toLocaleString("en-US")}</td>
                       </tr>
                     ))
                   )}
@@ -128,7 +153,7 @@ export function EntrepreneurDashboardHome() {
         <DonutSummary 
           title="Resumen de ganancias" 
           total={totalEarned.toLocaleString("en-US")} 
-          data={totalEarned > 0 ? entrepreneurEarningsBreakdown : []} 
+          data={totalEarned > 0 ? entrepreneurEarningsBreakdownData : []} 
         />
       </div>
 
@@ -136,7 +161,7 @@ export function EntrepreneurDashboardHome() {
         <Card className="border-[#e6eefb] shadow-premium">
           <CardHeader className="flex-row items-center justify-between space-y-0">
             <CardTitle>Productos recomendados</CardTitle>
-            <Link href="/dashboard/mis-productos" className="text-sm font-bold text-primary hover:underline">Ver catalogo</Link>
+            <Link href="/dashboard/mis-productos" className="text-sm font-bold text-primary hover:underline">Ver catálogo</Link>
           </CardHeader>
           <CardContent className="space-y-5">
             {products.slice(0, 3).map((product) => (
@@ -152,12 +177,15 @@ export function EntrepreneurDashboardHome() {
                 <p className="font-black text-navy">{product.share || 10}%</p>
               </div>
             ))}
+            {products.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">No hay productos en catálogo.</p>
+            )}
           </CardContent>
         </Card>
 
         <SeriesChart
           title="Rendimiento"
-          data={totalEarned > 0 ? revenueSeries : []}
+          data={revenueSeriesData.length > 0 ? revenueSeriesData : [{ month: "Sin datos", ventas: 0, ganancias: 0 }]}
           height="h-64"
           keys={[
             { key: "ventas", label: "Ventas", color: "#075BFF" },
@@ -236,7 +264,7 @@ function PremiumStatCard({
           <Icon className="h-5 w-5" aria-hidden="true" />
         </div>
       </div>
-      <TinyTrend data={tinySalesSeries} dataKey={dataKey} color={color === "#ffffff" ? "#ffffff" : color} />
+      <TinyTrend data={[{ month: "1", ventas: 10, pedidos: 4, clientes: 5 }]} dataKey={dataKey} color={color === "#ffffff" ? "#ffffff" : color} />
     </Card>
   );
 }

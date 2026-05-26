@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { earnings, products as baseProducts } from "@/lib/mock-data";
+import { products as baseProducts } from "@/lib/mock-data";
 import type { OrderStatus, StatusHistoryEntry } from "@/lib/mock/types";
 
 export function useOrderStorage() {
@@ -12,10 +12,11 @@ export function useOrderStorage() {
   const [products, setProducts] = useState<any[]>([]);
 
   useEffect(() => {
-    // 1. Fetch initial orders from Supabase
-    const fetchOrders = async () => {
+    // 1. Fetch initial profiles, orders, earnings, products from Supabase
+    const fetchData = async () => {
       const { data: authData } = await supabase.auth.getUser();
-      let query = supabase.from("orders").select("*").order("date", { ascending: false });
+      let ordersQuery = supabase.from("orders").select("*").order("date", { ascending: false });
+      let earningsQuery = supabase.from("earnings").select("*").order("created_at", { ascending: false });
 
       if (authData.user) {
         const { data: profile } = await supabase
@@ -25,7 +26,6 @@ export function useOrderStorage() {
           .single();
         
         if (profile) {
-          // Merge local settings modifications if any
           const localProfileStr = localStorage.getItem("linkeo_profile_" + profile.id);
           if (localProfileStr) {
             setCurrentUser({ ...profile, ...JSON.parse(localProfileStr) });
@@ -33,76 +33,77 @@ export function useOrderStorage() {
             setCurrentUser(profile);
           }
           if (profile.role === "emprendedor") {
-            query = query.eq("entrepreneurId", authData.user.id);
+            ordersQuery = ordersQuery.eq("entrepreneurId", authData.user.id);
+            earningsQuery = earningsQuery.eq("entrepreneurId", authData.user.id);
           }
         }
       }
 
-      const { data, error } = await query;
-      
-      if (error) {
-        console.error("Error fetching orders:", error);
+      // Fetch Orders
+      const { data: ordersData, error: ordersError } = await ordersQuery;
+      if (ordersError) {
+        console.error("Error fetching orders:", ordersError);
       } else {
         const savedMediaStr = localStorage.getItem("linkeo_orders_media") || "{}";
         const savedMedia = JSON.parse(savedMediaStr);
-        
-        const mergedOrders = (data || []).map((o: any) => ({
+        const mergedOrders = (ordersData || []).map((o: any) => ({
           ...o,
           media: savedMedia[o.id] || o.media || []
         }));
         setOrders(mergedOrders);
       }
+
+      // Fetch Earnings
+      const { data: earningsData, error: earningsError } = await earningsQuery;
+      if (earningsError) {
+        console.error("Error fetching earnings:", earningsError);
+      } else {
+        setEarnings(earningsData || []);
+      }
+
+      // Fetch Products
+      const { data: productsData, error: productsError } = await supabase
+        .from("products")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (productsError) {
+        console.error("Error fetching products:", productsError);
+      } else {
+        // If DB has products, use them, otherwise fallback to base mock products so the catalog is not empty initially
+        if (productsData && productsData.length > 0) {
+          setProducts(productsData);
+        } else {
+          setProducts(baseProducts);
+        }
+      }
     };
 
-    fetchOrders();
+    fetchData();
 
     // 2. Setup Realtime subscription
-    const channelName = `orders_changes_${Math.random().toString(36).slice(2, 11)}`;
+    const channelName = `db_changes_${Math.random().toString(36).slice(2, 11)}`;
     const subscription = supabase
       .channel(channelName)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "orders" },
-        (payload) => {
-          fetchOrders();
-        }
+        () => { fetchData(); }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "products" },
+        () => { fetchData(); }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "earnings" },
+        () => { fetchData(); }
       )
       .subscribe();
-
-    // Ganancias (Earnings) still local for now until we create an earnings table
-    const savedEarnings = localStorage.getItem("linkeo_earnings");
-    if (savedEarnings) {
-      setEarnings(JSON.parse(savedEarnings));
-    } else {
-      setEarnings([]);
-    }
-
-    // Products initialization from localStorage
-    const savedProducts = localStorage.getItem("linkeo_products");
-    if (savedProducts) {
-      setProducts(JSON.parse(savedProducts));
-    } else {
-      localStorage.setItem("linkeo_products", JSON.stringify(baseProducts));
-      setProducts(baseProducts);
-    }
-
-    const handleStorageChange = () => {
-      const updatedEarnings = localStorage.getItem("linkeo_earnings");
-      if (updatedEarnings) setEarnings(JSON.parse(updatedEarnings));
-      
-      const updatedProducts = localStorage.getItem("linkeo_products");
-      if (updatedProducts) setProducts(JSON.parse(updatedProducts));
-
-      fetchOrders();
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    window.addEventListener("linkeo-storage", handleStorageChange);
     
     return () => {
       supabase.removeChannel(subscription);
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("linkeo-storage", handleStorageChange);
     };
   }, []);
 
@@ -116,11 +117,11 @@ export function useOrderStorage() {
     const orderToUpdate = orders.find(o => o.id === orderId);
     if (!orderToUpdate) return;
 
-    // Local earnings logic
+    // Automatic earnings logic when delivered
     if (status === "Entregado" && orderToUpdate.status !== "Entregado") {
-      addEarning({
+      await addEarning({
         id: `ERN-${Math.floor(Math.random() * 10000)}`,
-        entrepreneurId: orderToUpdate.entrepreneurId || "ENT-001",
+        entrepreneurId: orderToUpdate.entrepreneurId || currentUser?.id || "ENT-001",
         amount: parseFloat(String(orderToUpdate.profit).replace(/[^0-9.-]+/g, "")),
         type: "venta",
         date: new Date().toISOString().split("T")[0],
@@ -171,18 +172,14 @@ export function useOrderStorage() {
     if (error) console.error("Error assigning delivery:", error);
   };
 
-  const addEarning = (earning: any) => {
-    const newEarnings = [earning, ...localEarnings];
-    setEarnings(newEarnings);
-    localStorage.setItem("linkeo_earnings", JSON.stringify(newEarnings));
-    window.dispatchEvent(new Event("linkeo-storage"));
+  const addEarning = async (earning: any) => {
+    const { error } = await supabase.from("earnings").insert([earning]);
+    if (error) console.error("Error adding earning to Supabase:", error);
   };
 
-  const addProduct = (product: any) => {
-    const updatedProducts = [product, ...products];
-    setProducts(updatedProducts);
-    localStorage.setItem("linkeo_products", JSON.stringify(updatedProducts));
-    window.dispatchEvent(new Event("linkeo-storage"));
+  const addProduct = async (product: any) => {
+    const { error } = await supabase.from("products").insert([product]);
+    if (error) console.error("Error adding product to Supabase:", error);
   };
 
   const updateProfile = async (updatedFields: any) => {
@@ -198,7 +195,6 @@ export function useOrderStorage() {
         .eq("id", currentUser.id);
       if (error) console.error("Error updating profile in Supabase:", error);
     }
-    window.dispatchEvent(new Event("linkeo-storage"));
   };
 
   const addOrderMedia = (orderId: string, url: string, type: "photo" | "video") => {
@@ -211,8 +207,6 @@ export function useOrderStorage() {
 
     // Update local state orders immediately
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, media: updatedMedia } : o));
-
-    window.dispatchEvent(new Event("linkeo-storage"));
   };
 
   return { orders, localEarnings, currentUser, products, addOrder, updateOrderStatus, assignDelivery, addEarning, addProduct, updateProfile, addOrderMedia };

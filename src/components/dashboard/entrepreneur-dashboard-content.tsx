@@ -6,7 +6,6 @@ import { DonutSummary, SeriesChart } from "@/components/dashboard/charts";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Truck } from "lucide-react";
-import { revenueSeries, entrepreneurEarningsBreakdown } from "@/lib/mock-data";
 
 import { EntrepreneurProductsTable } from "@/components/order-flow/EntrepreneurProductsTable";
 import { EntrepreneurOrdersTable } from "@/components/order-flow/EntrepreneurOrdersTable";
@@ -19,43 +18,73 @@ const sectionTitles: Record<string, string> = {
   "mis-clientes": "Mis clientes",
   "mis-ganancias": "Mis ganancias",
   "mis-retiros": "Mis retiros",
-  estadisticas: "Estadisticas",
+  estadisticas: "Estadísticas",
   promociones: "Promociones",
   materiales: "Materiales",
   perfil: "Mi perfil",
-  configuracion: "Configuracion",
+  configuracion: "Configuración",
   ayuda: "Ayuda",
 };
 
 export function EntrepreneurDashboardContent({ section }: { section: string }) {
-  const title = sectionTitles[section] ?? "Seccion";
+  const title = sectionTitles[section] ?? "Sección";
   const { orders, localEarnings, currentUser, products } = useOrderStorage();
   
   const myWithdrawals = localEarnings.filter((e) => e.type === "retiro");
   
   // Calculate real stats
-  const totalEarned = localEarnings.reduce((acc, curr) => acc + (curr.type === "venta" ? curr.amount : 0), 0);
-  const totalWithdrawals = localEarnings.reduce((acc, curr) => acc + (curr.type === "retiro" ? curr.amount : 0), 0);
-  const availableBalance = totalEarned - totalWithdrawals;
+  const totalEarned = localEarnings.filter(curr => curr.type === "venta").reduce((acc, curr) => acc + Number(curr.amount), 0);
+  const totalWithdrawals = localEarnings.filter(curr => curr.type === "retiro").reduce((acc, curr) => acc + Number(curr.amount), 0);
+  const availableBalance = totalEarned - Math.abs(totalWithdrawals);
 
   // Real customers from orders
   const customerMap = new Map();
   orders.forEach(order => {
-    if (!customerMap.has(order.customerEmail)) {
-      customerMap.set(order.customerEmail, {
-        id: order.customerEmail,
-        name: order.customerName,
-        email: order.customerEmail,
+    const key = order.customerPhone || order.customerEmail || "N/A";
+    if (!customerMap.has(key)) {
+      customerMap.set(key, {
+        id: key,
+        name: order.customerName || "Cliente",
+        email: order.customerEmail || "",
         orders: 0,
         total: 0,
         status: "Activo"
       });
     }
-    const c = customerMap.get(order.customerEmail);
+    const c = customerMap.get(key);
     c.orders += 1;
-    c.total += parseFloat(String(order.total).replace(/[^0-9.-]+/g, ""));
+    c.total += parseFloat(String(order.amount).replace(/[^0-9.-]+/g, "")) || 0;
   });
   const myCustomers = Array.from(customerMap.values());
+
+  // Dynamic earnings breakdown
+  const salesEarnings = localEarnings.filter((item) => item.type === "venta").reduce((sum, item) => sum + Number(item.amount), 0);
+  const bonusEarnings = localEarnings.filter((item) => item.type === "bono").reduce((sum, item) => sum + Number(item.amount), 0);
+  const withdrawalEarnings = localEarnings.filter((item) => item.type === "retiro").reduce((sum, item) => sum + Number(item.amount), 0);
+  const earningsBase = salesEarnings + bonusEarnings + Math.abs(withdrawalEarnings) || 1;
+
+  const entrepreneurEarningsBreakdownData = [
+    { name: "Ganancia por ventas", value: Number(((salesEarnings / earningsBase) * 100).toFixed(1)), amount: `RD$ ${salesEarnings.toLocaleString("en-US")}`, color: "#20C997" },
+    { name: "Bonos y promociones", value: Number(((bonusEarnings / earningsBase) * 100).toFixed(1)), amount: `RD$ ${bonusEarnings.toLocaleString("en-US")}`, color: "#075BFF" },
+    { name: "Retiros", value: Number(((Math.abs(withdrawalEarnings) / earningsBase) * 100).toFixed(1)), amount: `RD$ ${Math.abs(withdrawalEarnings).toLocaleString("en-US")}`, color: "#7C4DFF" }
+  ];
+
+  // Dynamic time series for performance chart
+  const performanceGroups: Record<string, { ventas: number; ganancias: number }> = {};
+  orders.slice(0, 30).reverse().forEach((o) => {
+    const day = o.date ? new Date(o.date).toLocaleDateString("es-DO", { day: "numeric", month: "short" }) : "Hoy";
+    if (!performanceGroups[day]) {
+      performanceGroups[day] = { ventas: 0, ganancias: 0 };
+    }
+    performanceGroups[day].ventas += Number(o.amount) || 0;
+    performanceGroups[day].ganancias += Number(o.profit) || 0;
+  });
+
+  const revenueSeriesData = Object.entries(performanceGroups).map(([month, data]) => ({
+    month,
+    ventas: data.ventas,
+    ganancias: data.ganancias
+  }));
 
   return (
     <DashboardShell mode="dashboard" eyebrow={title} title={title}>
@@ -64,7 +93,7 @@ export function EntrepreneurDashboardContent({ section }: { section: string }) {
       {section === "mis-productos" && (
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle>Catalogo de productos disponibles</CardTitle>
+            <CardTitle>Catálogo de productos disponibles</CardTitle>
           </CardHeader>
           <CardContent>
             <EntrepreneurProductsTable products={products} />
@@ -93,7 +122,7 @@ export function EntrepreneurDashboardContent({ section }: { section: string }) {
           <CardContent>
             {myCustomers.length === 0 ? (
               <div className="py-12 text-center">
-                <p className="text-muted-foreground">Aun no tienes clientes. ¡Empieza a vender para verlos aqui!</p>
+                <p className="text-muted-foreground">Aún no tienes clientes. ¡Empieza a vender para verlos aquí!</p>
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -131,7 +160,7 @@ export function EntrepreneurDashboardContent({ section }: { section: string }) {
           <DonutSummary 
             title="Resumen de ganancias" 
             total={totalEarned.toLocaleString("en-US")} 
-            data={totalEarned > 0 ? entrepreneurEarningsBreakdown : []} 
+            data={totalEarned > 0 ? entrepreneurEarningsBreakdownData : []} 
           />
         </div>
       )}
@@ -155,7 +184,7 @@ export function EntrepreneurDashboardContent({ section }: { section: string }) {
                         <p className="mt-1 text-sm text-muted-foreground">Pedido {e.orderId} · {e.date}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-xl font-black text-navy">RD$ {e.amount.toLocaleString("en-US")}</p>
+                        <p className="text-xl font-black text-navy">RD$ {Number(e.amount).toLocaleString("en-US")}</p>
                         <div className="mt-1"><OrderStatusBadge status="Pendiente" /></div>
                       </div>
                     </div>
@@ -168,7 +197,7 @@ export function EntrepreneurDashboardContent({ section }: { section: string }) {
             <CardContent className="pt-6">
               <p className="text-sm font-bold text-muted-foreground">Balance disponible</p>
               <p className="mt-2 text-3xl font-black text-primary">RD$ {availableBalance.toLocaleString("en-US")}</p>
-              <p className="mt-1 text-sm text-muted-foreground">Los retiros se procesan en 1-3 dias habiles.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Los retiros se procesan en 1-3 días hábiles.</p>
               <div className="mt-6 space-y-3">
                 {[
                   { label: "Banco", value: currentUser?.bank_name || "No configurado" },
@@ -191,7 +220,7 @@ export function EntrepreneurDashboardContent({ section }: { section: string }) {
         <div className="grid gap-6">
           <SeriesChart
             title="Ventas y ganancias del mes"
-            data={totalEarned > 0 ? revenueSeries : []}
+            data={revenueSeriesData.length > 0 ? revenueSeriesData : [{ month: "Sin datos", ventas: 0, ganancias: 0 }]}
             keys={[
               { key: "ventas", label: "Ventas", color: "#075BFF" },
               { key: "ganancias", label: "Ganancias (RD$)", color: "#20C997" },
@@ -199,9 +228,9 @@ export function EntrepreneurDashboardContent({ section }: { section: string }) {
           />
           <div className="grid gap-6 xl:grid-cols-3">
             {[
-              { label: "Total ganado", value: `RD$ ${totalEarned.toLocaleString("en-US")}`, sub: "historico total" },
+              { label: "Total ganado", value: `RD$ ${totalEarned.toLocaleString("en-US")}`, sub: "histórico total" },
               { label: "Pedidos realizados", value: orders.length.toString(), sub: "de todos los tiempos" },
-              { label: "Clientes unicos", value: myCustomers.length.toString(), sub: "contactos registrados" },
+              { label: "Clientes únicos", value: myCustomers.length.toString(), sub: "contactos registrados" },
             ].map((stat) => (
               <Card key={stat.label} className="shadow-sm">
                 <CardContent className="pt-6">
@@ -220,24 +249,27 @@ export function EntrepreneurDashboardContent({ section }: { section: string }) {
         <div className="grid gap-6">
           <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-[#eef4ff] to-[#f7fbff] p-6">
             <p className="text-xs font-black uppercase text-primary">Recomendados esta semana</p>
-            <p className="mt-1 text-2xl font-black text-navy">Impulsa tus ventas con estos articulos</p>
+            <p className="mt-1 text-2xl font-black text-navy">Impulsa tus ventas con estos artículos</p>
           </div>
           <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {products.slice(0, 6).map((p) => (
               <Card key={p.id} className="shadow-sm">
                 <CardContent className="pt-6">
-                  <div className={`mb-4 grid h-14 w-14 place-items-center rounded-xl text-2xl font-black ${p.accent}`}>
+                  <div className={`mb-4 grid h-14 w-14 place-items-center rounded-xl text-2xl font-black bg-blue-50 text-blue-600`}>
                     {p.name.slice(0, 1)}
                   </div>
                   <p className="font-black text-navy">{p.name}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">{p.category} · Demanda {p.demand}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{p.category} · Demanda {p.demand || "Media"}</p>
                   <div className="mt-4 flex items-center justify-between">
-                    <span className="font-black text-primary">RD$ {p.price.toLocaleString("en-US")}</span>
-                    <span className="text-sm font-bold text-emerald-600">+RD$ {p.margin.toLocaleString("en-US")}</span>
+                    <span className="font-black text-primary">RD$ {Number(p.price || 0).toLocaleString("en-US")}</span>
+                    <span className="text-sm font-bold text-emerald-600">+RD$ {Number(p.margin || 0).toLocaleString("en-US")}</span>
                   </div>
                 </CardContent>
               </Card>
             ))}
+            {products.length === 0 && (
+              <p className="col-span-full text-center py-8 text-muted-foreground">No hay productos en catálogo para promocionar.</p>
+            )}
           </div>
         </div>
       )}
@@ -267,11 +299,11 @@ export function EntrepreneurDashboardContent({ section }: { section: string }) {
             <CardContent className="space-y-0 divide-y divide-border">
               {[
                 { label: "Nombre completo", value: currentUser?.full_name || "..." },
-                { label: "Correo electronico", value: currentUser?.email || "..." },
-                { label: "Telefono", value: currentUser?.phone || "No registrado" },
+                { label: "Correo electrónico", value: currentUser?.email || "..." },
+                { label: "Teléfono", value: currentUser?.phone || "No registrado" },
                 { label: "Ciudad", value: currentUser?.city || "No registrada" },
                 { label: "Nombre de tienda", value: currentUser?.store_name || "Mi Tienda Linkeo" },
-                { label: "Metodo de cobro", value: currentUser?.payment_method || "Transferencia bancaria" },
+                { label: "Método de cobro", value: currentUser?.payment_method || "Transferencia bancaria" },
               ].map((f) => (
                 <div key={f.label} className="grid grid-cols-[160px_1fr] items-center gap-4 py-4">
                   <p className="text-sm font-bold text-muted-foreground">{f.label}</p>
@@ -283,7 +315,7 @@ export function EntrepreneurDashboardContent({ section }: { section: string }) {
         </div>
       )}
 
-      {/* Default cases for other sections omitted for brevity or kept as is */}
+      {/* Default cases for other sections */}
       {["materiales", "configuracion", "ayuda"].includes(section) && (
         <div className="py-12 text-center text-muted-foreground">
           Contenido de {title} en desarrollo...
