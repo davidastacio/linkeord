@@ -129,6 +129,22 @@ export function DashboardShell({ mode, title, eyebrow, children }: DashboardShel
             Contactar soporte
           </Button>
         </div>
+        <div className="mt-6 border-t border-border/40 pt-4">
+          <Button
+            onClick={handleLogout}
+            disabled={loggingOut}
+            variant="ghost"
+            className={cn(
+              "w-full justify-start gap-3 px-3 py-2.5 text-sm font-black transition-all rounded-md",
+              isAdmin
+                ? "text-white/60 hover:bg-white/5 hover:text-white"
+                : "text-slate-500 hover:bg-red-50 hover:text-red-600"
+            )}
+          >
+            <LogOut className="h-5 w-5" />
+            {loggingOut ? "Cerrando..." : "Cerrar sesión"}
+          </Button>
+        </div>
       </aside>
       <div className="lg:pl-72">
         <header className={cn("sticky top-0 z-20 border-b bg-white/90 backdrop-blur-xl", isAdmin ? "border-border" : "border-[#e8effa]")}>
@@ -170,6 +186,16 @@ export function DashboardShell({ mode, title, eyebrow, children }: DashboardShel
               </Button>
               <Button variant="outline" size="icon" className="hidden sm:inline-flex" aria-label="Mensajes">
                 <MessageSquareText className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleLogout}
+                disabled={loggingOut}
+                title="Cerrar sesión"
+                className="text-slate-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+              >
+                <LogOut className="h-5 w-5" />
               </Button>
               <Link 
                 href={mode === "admin" ? "/admin/usuarios" : (mode === "provider" ? "/provider/perfil" : "/dashboard/perfil")} 
