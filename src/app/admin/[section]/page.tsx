@@ -174,11 +174,11 @@ export default function AdminSectionPage({
 
   return (
     <DashboardShell mode="admin" eyebrow="Módulo administrativo" title={title}>
-      {/* ── EMPRENDEDORES ── */}
-      {section === "emprendedores" && (
+      {/* ── EMPRENDEDORES Y USUARIOS ── */}
+      {(section === "emprendedores" || section === "usuarios") && (
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle>Solicitudes y Acceso de Emprendedores</CardTitle>
+            <CardTitle>{section === "usuarios" ? "Gestión de Todos los Usuarios" : "Solicitudes y Acceso de Emprendedores"}</CardTitle>
           </CardHeader>
           <CardContent>
             <AdminProfilesTable />
@@ -467,7 +467,7 @@ export default function AdminSectionPage({
       )}
 
       {/* ── SECCIONES GENERICAS / NO DEFINIDAS COMPLETAMENTE ── */}
-      {["promociones", "notificaciones", "soporte", "usuarios", "roles-permisos", "configuracion"].includes(section) && (
+      {["promociones", "notificaciones", "soporte", "roles-permisos", "configuracion"].includes(section) && (
         <Card className="shadow-sm">
           <CardHeader>
             <CardTitle>{title}</CardTitle>
