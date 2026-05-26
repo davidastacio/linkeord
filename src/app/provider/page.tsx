@@ -13,13 +13,12 @@ export default function ProviderDashboardPage() {
   const { orders, products, currentUser } = useOrderStorage();
 
   // Filter orders related to this provider's products.
-  // Static supplierId for mock suppliers is SUP-001 or SUP-002, etc.
-  // In a real database, we would match on profile.id or email.
-  const mySupplierId = currentUser?.id || "SUP-001";
+  const mySupplierId = currentUser?.id;
+  const isDemo = !mySupplierId;
 
   // Filter orders that have products belonging to this supplier
   const supplierOrders = orders.filter(
-    (o) => o.supplierId === mySupplierId || o.supplierId === "SUP-001"
+    (o) => isDemo ? o.supplierId === "SUP-001" : o.supplierId === mySupplierId
   );
   
   // Calculate stats
@@ -32,7 +31,7 @@ export default function ProviderDashboardPage() {
   ).length;
 
   const myProducts = products.filter(
-    (p) => p.supplierId === mySupplierId || p.supplierId === "SUP-001"
+    (p) => isDemo ? p.supplierId === "SUP-001" : p.supplierId === mySupplierId
   );
 
   const stats = [
@@ -67,7 +66,7 @@ export default function ProviderDashboardPage() {
     <DashboardShell
       mode="provider"
       eyebrow="Resumen de tu tienda y productos"
-      title={`¡Bienvenido, ${currentUser?.full_name || "Proveedor Demo"}!`}
+      title={`¡Bienvenido, ${currentUser?.full_name || (isDemo ? "Proveedor Demo" : "Proveedor")}!`}
     >
       <div className="grid gap-5 md:grid-cols-3">
         {stats.map((metric) => (

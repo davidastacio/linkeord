@@ -70,7 +70,11 @@ export function useOrderStorage() {
       if (productsError) {
         console.error("Error fetching products:", productsError);
       } else {
-        setProducts(productsData || []);
+        const mapped = (productsData || []).map((p: any) => ({
+          ...p,
+          supplierId: p.supplierid || p.supplierId, // Map database supplierid to frontend supplierId
+        }));
+        setProducts(mapped);
       }
     };
 
@@ -174,9 +178,53 @@ export function useOrderStorage() {
 
   const addProduct = async (product: any) => {
     // Exclude client-only keys that do not exist in Supabase columns
-    const { stockLabel, share, accent, ...dbProduct } = product;
-    const { error } = await supabase.from("products").insert([dbProduct]);
+    const { stockLabel, share, accent, supplierId, ...dbProduct } = product;
+    
+    // Map supplierId to database supplierid
+    const payload = {
+      ...dbProduct,
+      supplierid: supplierId,
+    };
+
+    const { error } = await supabase.from("products").insert([payload]);
     if (error) console.error("Error adding product to Supabase:", error);
+  };
+
+  const uploadProductImage = async (file: File): Promise<string> => {
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Math.random().toString(36).slice(2)}.${fileExt}`;
+      const filePath = `products/${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from("product-images")
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (error) {
+        console.warn("Storage upload failed, falling back to base64:", error.message);
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("product-images")
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (err) {
+      console.warn("Error in uploadProductImage, falling back to base64:", err);
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+    }
   };
 
   const updateProfile = async (updatedFields: any) => {
@@ -206,6 +254,6 @@ export function useOrderStorage() {
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, media: updatedMedia } : o));
   };
 
-  return { orders, localEarnings, currentUser, products, addOrder, updateOrderStatus, assignDelivery, addEarning, addProduct, updateProfile, addOrderMedia };
+  return { orders, localEarnings, currentUser, products, addOrder, updateOrderStatus, assignDelivery, addEarning, addProduct, uploadProductImage, updateProfile, addOrderMedia };
 }
 

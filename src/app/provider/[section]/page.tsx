@@ -52,16 +52,17 @@ const MOCK_IMAGES = [
 export default function ProviderSectionPage({ params }: { params: Promise<{ section: string }> }) {
   const { section } = use(params);
   const title = sectionTitles[section] ?? "Proveedor";
-  const { orders, products, currentUser, addProduct, updateOrderStatus, updateProfile, addOrderMedia } = useOrderStorage();
+  const { orders, products, currentUser, addProduct, uploadProductImage, updateOrderStatus, updateProfile, addOrderMedia } = useOrderStorage();
 
-  const mySupplierId = currentUser?.id || "SUP-001";
+  const mySupplierId = currentUser?.id;
+  const isDemo = !mySupplierId;
 
   // Filter products and orders
   const myProducts = products.filter(
-    (p) => p.supplierId === mySupplierId || p.supplierId === "SUP-001"
+    (p) => isDemo ? p.supplierId === "SUP-001" : p.supplierId === mySupplierId
   );
   const myOrders = orders.filter(
-    (o) => o.supplierId === mySupplierId || o.supplierId === "SUP-001"
+    (o) => isDemo ? o.supplierId === "SUP-001" : o.supplierId === mySupplierId
   );
 
   // Form state for adding products
@@ -71,6 +72,8 @@ export default function ProviderSectionPage({ params }: { params: Promise<{ sect
   const [sku, setSku] = useState("");
   const [imageUrl, setImageUrl] = useState(MOCK_IMAGES[0].url);
   const [customImageUrl, setCustomImageUrl] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [costInput, setCostInput] = useState("");
   const [stockInput, setStockInput] = useState("50");
   const [demand, setDemand] = useState<"Alta" | "Media" | "Baja">("Alta");
@@ -115,11 +118,27 @@ export default function ProviderSectionPage({ params }: { params: Promise<{ sect
   const parsedCost = parseFloat(costInput) || 0;
   const pricing = calculatePlatformPrices(parsedCost);
 
-  const handleAddProductSubmit = (e: React.FormEvent) => {
+  const handleAddProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || parsedCost <= 0) return;
 
-    const finalImage = customImageUrl.trim() || imageUrl;
+    if (!mySupplierId) {
+      alert("Por favor, inicia sesión con un perfil de proveedor activo para añadir productos.");
+      return;
+    }
+
+    let finalImage = customImageUrl.trim() || imageUrl;
+
+    if (selectedFile) {
+      setUploadingImage(true);
+      try {
+        finalImage = await uploadProductImage(selectedFile);
+      } catch (err) {
+        console.error("Error uploading image to storage:", err);
+      } finally {
+        setUploadingImage(false);
+      }
+    }
 
     const newProd = {
       id: `PRD-${Math.floor(100000 + Math.random() * 900000)}`,
@@ -139,7 +158,7 @@ export default function ProviderSectionPage({ params }: { params: Promise<{ sect
       accent: "bg-blue-50 text-blue-600",
     };
 
-    addProduct(newProd);
+    await addProduct(newProd);
 
     // Reset fields
     setName("");
@@ -147,6 +166,7 @@ export default function ProviderSectionPage({ params }: { params: Promise<{ sect
     setCostInput("");
     setStockInput("50");
     setCustomImageUrl("");
+    setSelectedFile(null);
     setShowAddForm(false);
   };
 
@@ -302,6 +322,7 @@ export default function ProviderSectionPage({ params }: { params: Promise<{ sect
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {
+                              setSelectedFile(file);
                               const reader = new FileReader();
                               reader.onloadend = () => {
                                 setCustomImageUrl(reader.result as string);
@@ -359,9 +380,10 @@ export default function ProviderSectionPage({ params }: { params: Promise<{ sect
                     </button>
                     <button
                       type="submit"
-                      className="rounded-md bg-primary px-4 py-2 text-sm font-black text-white hover:bg-primary/90"
+                      disabled={uploadingImage}
+                      className="rounded-md bg-primary px-4 py-2 text-sm font-black text-white hover:bg-primary/90 disabled:opacity-50"
                     >
-                      Guardar y Publicar
+                      {uploadingImage ? "Guardando..." : "Guardar y Publicar"}
                     </button>
                   </div>
                 </form>
@@ -727,8 +749,8 @@ export default function ProviderSectionPage({ params }: { params: Promise<{ sect
               <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-gradient-to-br from-primary to-[#071a36] text-2xl font-black text-white">
                 {currentUser?.full_name?.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || "PV"}
               </div>
-              <p className="mt-4 text-xl font-black text-navy">{currentUser?.full_name || "Proveedor Demo"}</p>
-              <p className="mt-1 text-sm text-muted-foreground">{currentUser?.email || "proveedor@demo.com"}</p>
+              <p className="mt-4 text-xl font-black text-navy">{currentUser?.full_name || (isDemo ? "Proveedor Demo" : "Proveedor")}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{currentUser?.email || (isDemo ? "proveedor@demo.com" : "")}</p>
               <div className="mt-4 inline-block rounded-full bg-blue-100 px-4 py-1.5 text-sm font-black text-blue-700">
                 Tienda Mayorista
               </div>
@@ -738,10 +760,10 @@ export default function ProviderSectionPage({ params }: { params: Promise<{ sect
             <CardHeader><CardTitle>Datos del Proveedor</CardTitle></CardHeader>
             <CardContent className="space-y-0 divide-y divide-border">
               {[
-                { label: "Nombre de Tienda / Razón Social", value: currentUser?.full_name || "Distribuidor Mayorista S.R.L." },
+                { label: "Nombre de Tienda / Razón Social", value: currentUser?.full_name || (isDemo ? "Distribuidor Mayorista S.R.L." : "Proveedor") },
                 { label: "Teléfono", value: currentUser?.phone || "No registrado" },
-                { label: "Correo de Contacto", value: currentUser?.email || "proveedor@demo.com" },
-                { label: "Ubicación Almacén", value: currentUser?.city || "Zona Industrial de Herrera, Santo Domingo" },
+                { label: "Correo de Contacto", value: currentUser?.email || (isDemo ? "proveedor@demo.com" : "") },
+                { label: "Ubicación Almacén", value: currentUser?.city || (isDemo ? "Zona Industrial de Herrera, Santo Domingo" : "No registrada") },
                 { label: "Productos en Catálogo", value: `${myProducts.length} items` },
                 { label: "Pedidos despachados", value: `${myOrders.length} despachos` },
               ].map((f) => (
