@@ -171,7 +171,10 @@ export function DashboardShell({ mode, title, eyebrow, children }: DashboardShel
               <Button variant="outline" size="icon" className="hidden sm:inline-flex" aria-label="Mensajes">
                 <MessageSquareText className="h-5 w-5" />
               </Button>
-              <Link href="/" className="hidden items-center gap-3 pl-2 sm:flex">
+              <Link 
+                href={mode === "admin" ? "/admin/usuarios" : (mode === "provider" ? "/provider/perfil" : "/dashboard/perfil")} 
+                className="hidden items-center gap-3 pl-2 sm:flex"
+              >
                 <span className={cn("grid h-10 w-10 place-items-center rounded-full bg-secondary text-sm font-black text-primary", !isAdmin && "ring-4 ring-white")}>
                   {userInitials}
                 </span>
