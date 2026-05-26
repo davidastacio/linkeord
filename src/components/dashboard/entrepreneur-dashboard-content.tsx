@@ -5,7 +5,7 @@ import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { DonutSummary, SeriesChart } from "@/components/dashboard/charts";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Truck } from "lucide-react";
+import { Truck, Edit, Save, X } from "lucide-react";
 
 import { EntrepreneurProductsTable } from "@/components/order-flow/EntrepreneurProductsTable";
 import { EntrepreneurOrdersTable } from "@/components/order-flow/EntrepreneurOrdersTable";
@@ -29,6 +29,7 @@ const sectionTitles: Record<string, string> = {
 export function EntrepreneurDashboardContent({ section }: { section: string }) {
   const title = sectionTitles[section] ?? "Sección";
   const { orders, localEarnings, currentUser, products, updateProfile } = useOrderStorage();
+  const [isEditing, setIsEditing] = useState(false);
   
   const myWithdrawals = localEarnings.filter((e) => e.type === "retiro");
   
@@ -294,24 +295,36 @@ export function EntrepreneurDashboardContent({ section }: { section: string }) {
               </div>
             </CardContent>
           </Card>
-          <Card className="shadow-sm">
-            <CardHeader><CardTitle>Datos del perfil</CardTitle></CardHeader>
-            <CardContent className="space-y-0 divide-y divide-border">
-              {[
-                { label: "Nombre completo", value: currentUser?.full_name || "..." },
-                { label: "Correo electrónico", value: currentUser?.email || "..." },
-                { label: "Teléfono", value: currentUser?.phone || "No registrado" },
-                { label: "Ciudad", value: currentUser?.city || "No registrada" },
-                { label: "Nombre de tienda", value: currentUser?.store_name || "Mi Tienda Linkeo" },
-                { label: "Método de cobro", value: currentUser?.payment_method || "Transferencia bancaria" },
-              ].map((f) => (
-                <div key={f.label} className="grid grid-cols-[160px_1fr] items-center gap-4 py-4">
-                  <p className="text-sm font-bold text-muted-foreground">{f.label}</p>
-                  <p className="font-black text-navy">{f.value}</p>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+          {isEditing ? (
+            <ProfileEditForm currentUser={currentUser} updateProfile={updateProfile} onCancel={() => setIsEditing(false)} />
+          ) : (
+            <Card className="shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <CardTitle>Datos del perfil</CardTitle>
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1.5 text-xs font-black text-navy shadow-sm hover:bg-slate-50 transition"
+                >
+                  <Edit className="h-3.5 w-3.5 text-primary" /> Editar Perfil
+                </button>
+              </CardHeader>
+              <CardContent className="space-y-0 divide-y divide-border">
+                {[
+                  { label: "Nombre completo", value: currentUser?.full_name || "..." },
+                  { label: "Correo electrónico", value: currentUser?.email || "..." },
+                  { label: "Teléfono", value: currentUser?.phone || "No registrado" },
+                  { label: "Ciudad", value: currentUser?.city || "No registrada" },
+                  { label: "Nombre de tienda", value: currentUser?.store_name || "Mi Tienda Linkeo" },
+                  { label: "Método de cobro", value: currentUser?.payment_method || "Transferencia bancaria" },
+                ].map((f) => (
+                  <div key={f.label} className="grid grid-cols-[160px_1fr] items-center gap-4 py-4">
+                    <p className="text-sm font-bold text-muted-foreground">{f.label}</p>
+                    <p className="font-black text-navy">{f.value}</p>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 
@@ -468,6 +481,146 @@ function SettingsForm({ currentUser, updateProfile }: { currentUser: any; update
               className="rounded-lg bg-primary px-6 py-2.5 text-sm font-black text-white hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
               {saving ? "Guardando..." : "Guardar Configuración"}
+            </button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ProfileEditForm({ currentUser, updateProfile, onCancel }: { currentUser: any; updateProfile: (fields: any) => Promise<void>; onCancel: () => void }) {
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [city, setCity] = useState("");
+  const [storeName, setStoreName] = useState("");
+  const [bankName, setBankName] = useState("");
+  const [bankAccount, setBankAccount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("Transferencia bancaria");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (currentUser) {
+      setFullName(currentUser.full_name || "");
+      setPhone(currentUser.phone || "");
+      setCity(currentUser.city || "");
+      setStoreName(currentUser.store_name || "");
+      setBankName(currentUser.bank_name || "Banco Popular");
+      setBankAccount(currentUser.bank_account || "");
+      setPaymentMethod(currentUser.payment_method || "Transferencia bancaria");
+    }
+  }, [currentUser]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    await updateProfile({
+      full_name: fullName,
+      phone,
+      city,
+      store_name: storeName,
+      bank_name: bankName,
+      bank_account: bankAccount,
+      payment_method: paymentMethod
+    });
+    setSaving(false);
+    onCancel();
+  };
+
+  return (
+    <Card className="shadow-sm">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <CardTitle>Editar Datos del Perfil</CardTitle>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="inline-flex items-center gap-1 h-8 px-2 rounded-md border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
+        >
+          <X className="h-3.5 w-3.5" /> Cancelar
+        </button>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs font-bold text-navy">Nombre Completo</label>
+              <input
+                required
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold text-navy">Teléfono</label>
+              <input
+                type="text"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Ej. 809-555-0199"
+                className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold text-navy">Ciudad</label>
+              <input
+                type="text"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="Ej. Santo Domingo"
+                className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold text-navy">Nombre de tu Tienda</label>
+              <input
+                type="text"
+                value={storeName}
+                onChange={(e) => setStoreName(e.target.value)}
+                placeholder="Ej. Mi Tienda Linkeo"
+                className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold text-navy">Banco</label>
+              <select
+                value={bankName}
+                onChange={(e) => setBankName(e.target.value)}
+                className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white"
+              >
+                <option value="Banco Popular">Banco Popular Dominicano</option>
+                <option value="Banco de Reservas">Banreservas</option>
+                <option value="Banco BHD">Banco BHD</option>
+                <option value="Asociación Popular">Asociación Popular (APAP)</option>
+                <option value="Banco Scotiabank">Scotiabank</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold text-navy">Número de Cuenta</label>
+              <input
+                type="text"
+                value={bankAccount}
+                onChange={(e) => setBankAccount(e.target.value)}
+                placeholder="Ej. 799123456"
+                className="w-full rounded-md border border-border px-3 py-2 text-sm bg-white font-mono"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 border-t border-border pt-4">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="rounded-lg border border-border px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 transition"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="rounded-lg bg-primary px-5 py-2 text-sm font-black text-white hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+            >
+              <Save className="h-4 w-4" /> {saving ? "Guardando..." : "Guardar Cambios"}
             </button>
           </div>
         </form>

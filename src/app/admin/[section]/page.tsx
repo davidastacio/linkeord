@@ -169,11 +169,23 @@ export default function AdminSectionPage({
 
   return (
     <DashboardShell mode="admin" eyebrow="Módulo administrativo" title={title}>
-      {/* ── EMPRENDEDORES Y USUARIOS ── */}
-      {(section === "emprendedores" || section === "usuarios") && (
+      {/* ── EMPRENDEDORES ── */}
+      {section === "emprendedores" && (
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle>{section === "usuarios" ? "Gestión de Todos los Usuarios" : "Solicitudes y Acceso de Emprendedores"}</CardTitle>
+            <CardTitle>Solicitudes y Acceso de Emprendedores</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AdminProfilesTable roleFilter="emprendedor" />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── USUARIOS ── */}
+      {section === "usuarios" && (
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle>Gestión de Todos los Usuarios</CardTitle>
           </CardHeader>
           <CardContent>
             <AdminProfilesTable />
@@ -275,68 +287,88 @@ export default function AdminSectionPage({
 
       {/* ── TIENDAS PROVEEDORAS ── */}
       {section === "tiendas-proveedoras" && (
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle>Proveedores</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {suppliersList.map((s) => (
-                <div key={s.id} className="rounded-lg border border-border p-5">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="grid h-11 w-11 place-items-center rounded-lg bg-primary/10 font-black text-primary text-sm">
-                      {s.name.slice(0, 2).toUpperCase()}
+        <div className="space-y-6">
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle>Proveedores</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {suppliersList.map((s) => (
+                  <div key={s.id} className="rounded-lg border border-border p-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="grid h-11 w-11 place-items-center rounded-lg bg-primary/10 font-black text-primary text-sm">
+                        {s.name.slice(0, 2).toUpperCase()}
+                      </div>
+                      <OrderStatusBadge status={s.status as any} />
                     </div>
-                    <OrderStatusBadge status={s.status as any} />
+                    <p className="mt-4 font-black text-navy">{s.name}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {s.products} productos activos
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-orange-600">
+                      {s.pending} pedidos pendientes
+                    </p>
                   </div>
-                  <p className="mt-4 font-black text-navy">{s.name}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {s.products} productos activos
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-orange-600">
-                    {s.pending} pedidos pendientes
-                  </p>
-                </div>
-              ))}
-              {suppliersList.length === 0 && (
-                <p className="col-span-full text-center py-8 text-muted-foreground">No hay tiendas proveedoras registradas.</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                ))}
+                {suppliersList.length === 0 && (
+                  <p className="col-span-full text-center py-8 text-muted-foreground">No hay tiendas proveedoras registradas.</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle>Solicitudes y Acceso de Proveedores (Tiendas)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AdminProfilesTable roleFilter="proveedor" />
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {/* ── DELIVERYS ── */}
       {section === "deliverys" && (
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle>Equipos de Delivery</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {deliveryTeamsList.map((d) => (
-                <div key={d.id} className="rounded-lg border border-border p-5">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="grid h-11 w-11 place-items-center rounded-full bg-emerald-100 font-black text-emerald-700 text-sm">
-                      {d.name.slice(0, 2).toUpperCase()}
+        <div className="space-y-6">
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle>Equipos de Delivery</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {deliveryTeamsList.map((d) => (
+                  <div key={d.id} className="rounded-lg border border-border p-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="grid h-11 w-11 place-items-center rounded-full bg-emerald-100 font-black text-emerald-700 text-sm">
+                        {d.name.slice(0, 2).toUpperCase()}
+                      </div>
+                      <OrderStatusBadge status={d.status as any} />
                     </div>
-                    <OrderStatusBadge status={d.status as any} />
+                    <p className="mt-4 font-black text-navy">{d.name}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {d.deliveries} entregas completadas
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-amber-500">
+                      Rating: {d.rating} ★
+                    </p>
                   </div>
-                  <p className="mt-4 font-black text-navy">{d.name}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {d.deliveries} entregas completadas
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-amber-500">
-                    Rating: {d.rating} ★
-                  </p>
-                </div>
-              ))}
-              {deliveryTeamsList.length === 0 && (
-                <p className="col-span-full text-center py-8 text-muted-foreground">No hay repartidores registrados.</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                ))}
+                {deliveryTeamsList.length === 0 && (
+                  <p className="col-span-full text-center py-8 text-muted-foreground">No hay repartidores registrados.</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle>Solicitudes y Acceso de Repartidores (Delivery)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AdminProfilesTable roleFilter="delivery" />
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {/* ── PAGOS EMPRENDEDORES ── */}

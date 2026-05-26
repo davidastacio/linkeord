@@ -6,7 +6,7 @@ import { collection, query, onSnapshot, doc, updateDoc } from "firebase/firestor
 import { Button } from "@/components/ui/button";
 import { Check, ShieldAlert, X, Search, ShieldCheck } from "lucide-react";
 
-export function AdminProfilesTable() {
+export function AdminProfilesTable({ roleFilter }: { roleFilter?: "emprendedor" | "proveedor" | "delivery" | "admin" }) {
   const [profiles, setProfiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"todos" | "pendientes" | "aprobados">("todos");
@@ -43,7 +43,10 @@ export function AdminProfilesTable() {
     }
   };
 
-  const filteredProfiles = profiles.filter((p) => {
+  // First filter by role if roleFilter is provided
+  const roleProfiles = roleFilter ? profiles.filter((p) => p.role === roleFilter) : profiles;
+
+  const filteredProfiles = roleProfiles.filter((p) => {
     const isApproved = p.approved === true || p.role === "admin";
     const isPending = p.approved !== true && p.role !== "admin";
 
@@ -69,19 +72,19 @@ export function AdminProfilesTable() {
             onClick={() => setFilter("todos")}
             className={`rounded-md px-4 py-2 font-bold transition-all ${filter === "todos" ? "bg-white text-primary shadow-sm" : "text-muted-foreground hover:text-navy"}`}
           >
-            Todos ({profiles.length})
+            Todos ({roleProfiles.length})
           </button>
           <button
             onClick={() => setFilter("pendientes")}
             className={`rounded-md px-4 py-2 font-bold transition-all ${filter === "pendientes" ? "bg-white text-amber-600 shadow-sm" : "text-muted-foreground hover:text-navy"}`}
           >
-            Pendientes ({profiles.filter((p) => p.approved !== true && p.role !== "admin").length})
+            Pendientes ({roleProfiles.filter((p) => p.approved !== true && p.role !== "admin").length})
           </button>
           <button
             onClick={() => setFilter("aprobados")}
             className={`rounded-md px-4 py-2 font-bold transition-all ${filter === "aprobados" ? "bg-white text-emerald-600 shadow-sm" : "text-muted-foreground hover:text-navy"}`}
           >
-            Aprobados ({profiles.filter((p) => p.approved === true || p.role === "admin").length})
+            Aprobados ({roleProfiles.filter((p) => p.approved === true || p.role === "admin").length})
           </button>
         </div>
 

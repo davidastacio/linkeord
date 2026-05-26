@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useState, useEffect } from "react";
-import { Plus, Check, Circle, Store, ClipboardList, WalletCards, ShoppingBag, Upload, Image as ImageIcon, Video, Save, ShieldAlert } from "lucide-react";
+import { Plus, Check, Circle, Store, ClipboardList, WalletCards, ShoppingBag, Upload, Image as ImageIcon, Video, Save, ShieldAlert, Edit, X } from "lucide-react";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -85,6 +85,7 @@ export default function ProviderSectionPage({ params }: { params: Promise<{ sect
   const [bankName, setBankName] = useState("");
   const [bankAccount, setBankAccount] = useState("");
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
 
   // Form state for uploading order media
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -174,12 +175,14 @@ export default function ProviderSectionPage({ params }: { params: Promise<{ sect
     e.preventDefault();
     await updateProfile({
       full_name: shopName,
+      store_name: shopName,
       phone: shopPhone,
       city: shopAddress,
       bank_name: bankName,
       bank_account: bankAccount,
     });
     setShowSaveSuccess(true);
+    setIsEditingProfile(false);
     setTimeout(() => setShowSaveSuccess(false), 3000);
   };
 
@@ -756,24 +759,122 @@ export default function ProviderSectionPage({ params }: { params: Promise<{ sect
               </div>
             </CardContent>
           </Card>
-          <Card className="shadow-sm">
-            <CardHeader><CardTitle>Datos del Proveedor</CardTitle></CardHeader>
-            <CardContent className="space-y-0 divide-y divide-border">
-              {[
-                { label: "Nombre de Tienda / Razón Social", value: currentUser?.full_name || (isDemo ? "Distribuidor Mayorista S.R.L." : "Proveedor") },
-                { label: "Teléfono", value: currentUser?.phone || "No registrado" },
-                { label: "Correo de Contacto", value: currentUser?.email || (isDemo ? "proveedor@demo.com" : "") },
-                { label: "Ubicación Almacén", value: currentUser?.city || (isDemo ? "Zona Industrial de Herrera, Santo Domingo" : "No registrada") },
-                { label: "Productos en Catálogo", value: `${myProducts.length} items` },
-                { label: "Pedidos despachados", value: `${myOrders.length} despachos` },
-              ].map((f) => (
-                <div key={f.label} className="grid grid-cols-[200px_1fr] items-center gap-4 py-4">
-                  <p className="text-sm font-bold text-muted-foreground">{f.label}</p>
-                  <p className="font-black text-navy">{f.value}</p>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+
+          {isEditingProfile ? (
+            <Card className="shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <CardTitle>Editar Perfil de Tienda</CardTitle>
+                <button
+                  type="button"
+                  onClick={() => setIsEditingProfile(false)}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-black text-navy shadow-sm hover:bg-slate-50 transition"
+                >
+                  <X className="h-3.5 w-3.5" /> Cancelar
+                </button>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSaveSettings} className="space-y-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-1 block text-xs font-bold text-navy">Nombre de Tienda / Razón Social</label>
+                      <input
+                        required
+                        type="text"
+                        value={shopName}
+                        onChange={(e) => setShopName(e.target.value)}
+                        className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-bold text-navy">Teléfono</label>
+                      <input
+                        required
+                        type="text"
+                        value={shopPhone}
+                        onChange={(e) => setShopPhone(e.target.value)}
+                        className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm bg-white"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="mb-1 block text-xs font-bold text-navy">Ubicación Almacén</label>
+                      <input
+                        required
+                        type="text"
+                        value={shopAddress}
+                        onChange={(e) => setShopAddress(e.target.value)}
+                        className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-bold text-navy">Banco</label>
+                      <select
+                        value={bankName}
+                        onChange={(e) => setBankName(e.target.value)}
+                        className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm bg-white"
+                      >
+                        <option value="Banco Popular">Banco Popular Dominicano</option>
+                        <option value="Banco de Reservas">Banco de Reservas (Banreservas)</option>
+                        <option value="BHD">Banco BHD</option>
+                        <option value="Scotiabank">Scotiabank</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-bold text-navy">Número de Cuenta</label>
+                      <input
+                        required
+                        type="text"
+                        value={bankAccount}
+                        onChange={(e) => setBankAccount(e.target.value)}
+                        className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm bg-white font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 border-t border-border pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingProfile(false)}
+                      className="rounded-lg border border-border px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 transition"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="rounded-lg bg-primary px-5 py-2 text-sm font-black text-white hover:bg-primary/90 transition flex items-center gap-1.5"
+                    >
+                      <Save className="h-4 w-4" /> Guardar Cambios
+                    </button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <CardTitle>Datos del Proveedor</CardTitle>
+                <button
+                  onClick={() => setIsEditingProfile(true)}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1.5 text-xs font-black text-navy shadow-sm hover:bg-slate-50 transition"
+                >
+                  <Edit className="h-3.5 w-3.5 text-primary" /> Editar Perfil
+                </button>
+              </CardHeader>
+              <CardContent className="space-y-0 divide-y divide-border">
+                {[
+                  { label: "Nombre de Tienda / Razón Social", value: currentUser?.full_name || (isDemo ? "Distribuidor Mayorista S.R.L." : "Proveedor") },
+                  { label: "Teléfono", value: currentUser?.phone || "No registrado" },
+                  { label: "Correo de Contacto", value: currentUser?.email || (isDemo ? "proveedor@demo.com" : "") },
+                  { label: "Ubicación Almacén", value: currentUser?.city || (isDemo ? "Zona Industrial de Herrera, Santo Domingo" : "No registrada") },
+                  { label: "Productos en Catálogo", value: `${myProducts.length} items` },
+                  { label: "Pedidos despachados", value: `${myOrders.length} despachos` },
+                ].map((f) => (
+                  <div key={f.label} className="grid grid-cols-[200px_1fr] items-center gap-4 py-4">
+                    <p className="text-sm font-bold text-muted-foreground">{f.label}</p>
+                    <p className="font-black text-navy">{f.value}</p>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 
