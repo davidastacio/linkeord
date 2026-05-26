@@ -234,11 +234,20 @@ export function useOrderStorage() {
     if (currentUser?.id) {
       localStorage.setItem("linkeo_profile_" + currentUser.id, JSON.stringify(updatedUser));
       
-      const { error } = await supabase
-        .from("profiles")
-        .update(updatedFields)
-        .eq("id", currentUser.id);
-      if (error) console.error("Error updating profile in Supabase:", error);
+      // Filter out fields that do not exist in profiles table schema
+      const dbPayload: any = {};
+      if (updatedFields.full_name !== undefined) dbPayload.full_name = updatedFields.full_name;
+      if (updatedFields.store_name !== undefined) dbPayload.store_name = updatedFields.store_name;
+      if (updatedFields.role !== undefined) dbPayload.role = updatedFields.role;
+      if (updatedFields.email !== undefined) dbPayload.email = updatedFields.email;
+
+      if (Object.keys(dbPayload).length > 0) {
+        const { error } = await supabase
+          .from("profiles")
+          .update(dbPayload)
+          .eq("id", currentUser.id);
+        if (error) console.error("Error updating profile in Supabase:", error);
+      }
     }
   };
 
