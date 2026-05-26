@@ -70,12 +70,7 @@ export function useOrderStorage() {
       if (productsError) {
         console.error("Error fetching products:", productsError);
       } else {
-        // If DB has products, use them, otherwise fallback to base mock products so the catalog is not empty initially
-        if (productsData && productsData.length > 0) {
-          setProducts(productsData);
-        } else {
-          setProducts(baseProducts);
-        }
+        setProducts(productsData || []);
       }
     };
 
@@ -178,7 +173,9 @@ export function useOrderStorage() {
   };
 
   const addProduct = async (product: any) => {
-    const { error } = await supabase.from("products").insert([product]);
+    // Exclude client-only keys that do not exist in Supabase columns
+    const { stockLabel, share, accent, ...dbProduct } = product;
+    const { error } = await supabase.from("products").insert([dbProduct]);
     if (error) console.error("Error adding product to Supabase:", error);
   };
 
