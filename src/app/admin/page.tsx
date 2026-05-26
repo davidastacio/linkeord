@@ -85,35 +85,35 @@ export default function AdminPage() {
     {
       label: "Ventas totales",
       value: `RD$ ${totalSalesVal.toLocaleString("en-US")}`,
-      trend: "+100% vs. mes anterior",
+      trend: totalSalesVal > 0 ? "+100%" : "0%",
       icon: ShoppingBag,
       color: "blue" as const
     },
     {
       label: "Pedidos totales",
       value: totalOrdersVal.toString(),
-      trend: "+100% vs. mes anterior",
+      trend: totalOrdersVal > 0 ? "+100%" : "0%",
       icon: PackageCheck,
       color: "green" as const
     },
     {
       label: "Emprendedores activos",
       value: activeEntrepreneursCount.toString(),
-      trend: "+100% vs. mes anterior",
+      trend: activeEntrepreneursCount > 0 ? "+100%" : "0%",
       icon: Users,
       color: "purple" as const
     },
     {
       label: "Clientes registrados",
       value: totalCustomersVal.toString(),
-      trend: "+100% vs. mes anterior",
+      trend: totalCustomersVal > 0 ? "+100%" : "0%",
       icon: UserPlus,
       color: "orange" as const
     },
     {
       label: "Ganancias netas",
       value: `RD$ ${netEarningsVal.toLocaleString("en-US")}`,
-      trend: "+100% vs. mes anterior",
+      trend: netEarningsVal > 0 ? "+100%" : "0%",
       icon: BadgeDollarSign,
       color: "blue" as const
     }
@@ -211,7 +211,7 @@ export default function AdminPage() {
           <div key={metric.label}>
             <MetricCard {...metric} />
             <TinyTrend
-              data={operationsSeriesData.length > 0 ? operationsSeriesData : [{ month: "1", ventas: 10, pedidos: 4, ganancias: 2 }]}
+              data={operationsSeriesData.length > 0 ? operationsSeriesData : [{ month: "Hoy", ventas: 0, pedidos: 0, ganancias: 0 }]}
               dataKey={index === 1 ? "pedidos" : index === 4 ? "ganancias" : "ventas"}
               color={index === 1 ? "#20C997" : index === 2 ? "#7C4DFF" : index === 3 ? "#F59E0B" : "#075BFF"}
             />

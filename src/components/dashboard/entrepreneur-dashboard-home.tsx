@@ -264,7 +264,7 @@ function PremiumStatCard({
           <Icon className="h-5 w-5" aria-hidden="true" />
         </div>
       </div>
-      <TinyTrend data={[{ month: "1", ventas: 10, pedidos: 4, clientes: 5 }]} dataKey={dataKey} color={color === "#ffffff" ? "#ffffff" : color} />
+      <TinyTrend data={[{ month: "Hoy", ventas: 0, pedidos: 0, clientes: 0, ganancias: 0 }]} dataKey={dataKey} color={color === "#ffffff" ? "#ffffff" : color} />
     </Card>
   );
 }
