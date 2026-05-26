@@ -139,7 +139,7 @@ export function DashboardShell({ mode, title, eyebrow, children }: DashboardShel
   }
 
   // 3. Bloqueo de seguridad: Si el usuario existe pero no está aprobado, se le muestra la pantalla de espera
-  if (userProfile && userProfile.approved === false && userProfile.role !== "admin") {
+  if (userProfile && userProfile.approved !== true && userProfile.role !== "admin") {
     return (
       <div className="relative flex min-h-screen flex-col items-center justify-center bg-[#f7faff] p-4 text-center">
         {/* Elementos decorativos de fondo */}

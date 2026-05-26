@@ -28,7 +28,13 @@ export default function AdminPage() {
 
       if (ordersRes.data) setOrders(ordersRes.data);
       if (profilesRes.data) setProfiles(profilesRes.data);
-      if (productsRes.data) setProducts(productsRes.data);
+      if (productsRes.data) {
+        const mappedProducts = productsRes.data.map((p: any) => ({
+          ...p,
+          supplierId: p.supplierid || p.supplierId,
+        }));
+        setProducts(mappedProducts);
+      }
       if (earningsRes.data) setEarnings(earningsRes.data);
       setLoading(false);
     };

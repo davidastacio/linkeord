@@ -62,9 +62,12 @@ export function AdminProfilesTable() {
 
   // Filter & Search logic
   const filteredProfiles = profiles.filter((p) => {
+    const isApproved = p.approved === true || p.role === "admin";
+    const isPending = p.approved !== true && p.role !== "admin";
+
     // 1. Filter by status
-    if (filter === "pendientes" && p.approved !== false) return false;
-    if (filter === "aprobados" && p.approved !== true) return false;
+    if (filter === "pendientes" && !isPending) return false;
+    if (filter === "aprobados" && !isApproved) return false;
 
     // 2. Search query
     if (searchQuery.trim() !== "") {
@@ -98,7 +101,7 @@ export function AdminProfilesTable() {
               filter === "pendientes" ? "bg-white text-amber-600 shadow-sm" : "text-muted-foreground hover:text-navy"
             }`}
           >
-            Pendientes ({profiles.filter((p) => p.approved === false).length})
+            Pendientes ({profiles.filter((p) => p.approved !== true && p.role !== "admin").length})
           </button>
           <button
             onClick={() => setFilter("aprobados")}
@@ -106,7 +109,7 @@ export function AdminProfilesTable() {
               filter === "aprobados" ? "bg-white text-emerald-600 shadow-sm" : "text-muted-foreground hover:text-navy"
             }`}
           >
-            Aprobados ({profiles.filter((p) => p.approved === true).length})
+            Aprobados ({profiles.filter((p) => p.approved === true || p.role === "admin").length})
           </button>
         </div>
 
@@ -153,8 +156,8 @@ export function AdminProfilesTable() {
               </tr>
             ) : (
               filteredProfiles.map((p) => {
-                const isApproved = p.approved === true;
-                const isPending = p.approved === false;
+                const isApproved = p.approved === true || p.role === "admin";
+                const isPending = p.approved !== true && p.role !== "admin";
                 const isUserAdmin = p.role === "admin";
 
                 return (

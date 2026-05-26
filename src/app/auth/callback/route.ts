@@ -65,6 +65,7 @@ export async function GET(request: Request) {
           email: user.email,
           full_name: user.user_metadata?.full_name || user.email?.split("@")[0],
           role: "emprendedor",
+          approved: false,
         }
       ]);
 
@@ -74,7 +75,28 @@ export async function GET(request: Request) {
       }
     }
 
-    const redirectUrl = profile?.role === "admin" ? `${origin}/admin` : `${origin}${next}`;
+    let target = next;
+    if (next === "/dashboard") {
+      if (profile?.role === "admin") {
+        target = "/admin";
+      } else if (profile?.role === "proveedor") {
+        target = "/provider";
+      } else if (profile?.role === "delivery") {
+        target = "/delivery";
+      } else {
+        target = "/dashboard";
+      }
+    } else {
+      if (profile?.role === "admin" && !next.startsWith("/admin")) {
+        target = "/admin";
+      } else if (profile?.role === "proveedor" && !next.startsWith("/provider")) {
+        target = "/provider";
+      } else if (profile?.role === "delivery" && !next.startsWith("/delivery")) {
+        target = "/delivery";
+      }
+    }
+
+    const redirectUrl = `${origin}${target}`;
     console.log("Redirecting to:", redirectUrl);
     return NextResponse.redirect(redirectUrl);
   }
