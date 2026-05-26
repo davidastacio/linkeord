@@ -17,7 +17,7 @@ const sectionTitles: Record<string, string> = {
 };
 
 // Calculate pricing logic based on user's exact specification
-export function calculatePlatformPrices(costVal: number) {
+function calculatePlatformPrices(costVal: number) {
   const cost = Number(costVal) || 0;
   let percent = 30; // default for <= 1000
   if (cost > 3000) {
