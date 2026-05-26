@@ -49,21 +49,14 @@ const MOCK_IMAGES = [
   { label: "Termo de Acero", url: "https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=400&q=80" },
 ];
 
-export default function ProviderSectionPage({ params }: { params: Promise<{ section: string }> }) {
+export default function ProviderSectionPage({
+  params,
+}: {
+  params: Promise<{ section: string }>;
+}) {
   const { section } = use(params);
-  const title = sectionTitles[section] ?? "Proveedor";
-  const { orders, products, currentUser, addProduct, uploadProductImage, updateOrderStatus, updateProfile, addOrderMedia } = useOrderStorage();
-
-  const mySupplierId = currentUser?.id;
-  const isDemo = !mySupplierId;
-
-  // Filter products and orders
-  const myProducts = products.filter(
-    (p) => isDemo ? p.supplierId === "SUP-001" : p.supplierId === mySupplierId
-  );
-  const myOrders = orders.filter(
-    (o) => isDemo ? o.supplierId === "SUP-001" : o.supplierId === mySupplierId
-  );
+  const title = sectionTitles[section] ?? "Sección";
+  const { orders, products, currentUser, addProduct, uploadProductImage, updateOrderStatus, updateProfile, addOrderMedia, loading } = useOrderStorage();
 
   // Form state for adding products
   const [showAddForm, setShowAddForm] = useState(false);
@@ -114,6 +107,27 @@ export default function ProviderSectionPage({ params }: { params: Promise<{ sect
       setSku("");
     }
   }, [name, category]);
+
+  if (loading) {
+    return (
+      <DashboardShell mode="provider" eyebrow={title} title={title}>
+        <div className="flex h-64 items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
+      </DashboardShell>
+    );
+  }
+
+  const mySupplierId = currentUser?.id;
+  const isDemo = !mySupplierId;
+
+  // Filter products and orders
+  const myProducts = products.filter(
+    (p) => isDemo ? p.supplierId === "SUP-001" : p.supplierId === mySupplierId
+  );
+  const myOrders = orders.filter(
+    (o) => isDemo ? o.supplierId === "SUP-001" : o.supplierId === mySupplierId
+  );
 
   // Calculate preview prices
   const parsedCost = parseFloat(costInput) || 0;

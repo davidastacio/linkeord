@@ -38,7 +38,7 @@ export default function RegisterPage() {
     displayName: string,
     role: string
   ) => {
-    await setDoc(doc(db, "profiles", uid), {
+    await setDoc(doc(db, "usuarios", uid), {
       email,
       full_name: displayName,
       role,

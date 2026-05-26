@@ -26,7 +26,7 @@ export default function AdminPage() {
       () => setLoading(false)
     );
     const unsubProfiles = onSnapshot(
-      collection(db, "profiles"),
+      collection(db, "usuarios"),
       (snap) => setProfiles(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
     );
     const unsubProducts = onSnapshot(

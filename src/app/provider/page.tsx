@@ -10,7 +10,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useOrderStorage } from "@/components/order-flow/store";
 
 export default function ProviderDashboardPage() {
-  const { orders, products, currentUser } = useOrderStorage();
+  const { orders, products, currentUser, loading } = useOrderStorage();
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#f7faff]">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   // Filter orders related to this provider's products.
   const mySupplierId = currentUser?.id;

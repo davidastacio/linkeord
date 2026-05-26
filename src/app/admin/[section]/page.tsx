@@ -49,7 +49,7 @@ export default function AdminSectionPage({
       (snap) => { setOrders(snap.docs.map((d) => ({ id: d.id, ...d.data() }))); setLoading(false); },
       () => setLoading(false)
     );
-    const unsubProfiles = onSnapshot(collection(db, "profiles"), (snap) => {
+    const unsubProfiles = onSnapshot(collection(db, "usuarios"), (snap) => {
       setProfiles(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
     const unsubProducts = onSnapshot(

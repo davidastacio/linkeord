@@ -30,14 +30,14 @@ export default function LoginPage() {
 
   const getRoleForUser = async (user: any): Promise<string> => {
     // 1. Try to fetch profile directly by UID
-    const profileSnap = await getDoc(doc(db, "profiles", user.uid));
+    const profileSnap = await getDoc(doc(db, "usuarios", user.uid));
     if (profileSnap.exists()) {
       return profileSnap.data().role || "emprendedor";
     }
 
     // 2. Fallback: Search by email in case profile was created with a different key/id
     if (user.email) {
-      const q = query(collection(db, "profiles"), where("email", "==", user.email));
+      const q = query(collection(db, "usuarios"), where("email", "==", user.email));
       const querySnap = await getDocs(q);
       if (!querySnap.empty) {
         const foundDoc = querySnap.docs[0];
@@ -45,7 +45,7 @@ export default function LoginPage() {
         const role = data.role || "emprendedor";
         // Self-heal: link UID to the profile data
         try {
-          await setDoc(doc(db, "profiles", user.uid), {
+          await setDoc(doc(db, "usuarios", user.uid), {
             ...data,
             email: user.email,
           });

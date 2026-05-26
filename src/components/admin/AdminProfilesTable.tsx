@@ -15,7 +15,7 @@ export function AdminProfilesTable({ roleFilter }: { roleFilter?: "emprendedor" 
 
   useEffect(() => {
     // Real-time listener from Firestore
-    const unsubscribe = onSnapshot(collection(db, "profiles"), (snap) => {
+    const unsubscribe = onSnapshot(collection(db, "usuarios"), (snap) => {
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       // Sort by created_at descending
       data.sort((a: any, b: any) => {
@@ -33,7 +33,7 @@ export function AdminProfilesTable({ roleFilter }: { roleFilter?: "emprendedor" 
     setActionLoading(profileId);
     const newStatus = !currentStatus;
     try {
-      await updateDoc(doc(db, "profiles", profileId), { approved: newStatus });
+      await updateDoc(doc(db, "usuarios", profileId), { approved: newStatus });
       // Firestore real-time will update state automatically
     } catch (err: any) {
       console.error("Error updating approval:", err);

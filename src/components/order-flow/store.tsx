@@ -50,7 +50,7 @@ export function OrderStorageProvider({ children }: { children: React.ReactNode }
       }
 
       // Live subscription to user profile
-      const profileRef = doc(db, "profiles", firebaseUser.uid);
+      const profileRef = doc(db, "usuarios", firebaseUser.uid);
       unsubProfile = onSnapshot(profileRef, async (profileSnap) => {
         if (profileSnap.exists()) {
           setCurrentUser({ id: firebaseUser.uid, ...profileSnap.data() });
@@ -243,7 +243,7 @@ export function OrderStorageProvider({ children }: { children: React.ReactNode }
     setCurrentUser(updatedUser);
 
     try {
-      const profileRef = doc(db, "profiles", currentUser.id);
+      const profileRef = doc(db, "usuarios", currentUser.id);
       const { id, ...fieldsToSave } = updatedFields;
       await updateDoc(profileRef, fieldsToSave);
     } catch (err) {
