@@ -28,7 +28,7 @@ const sectionTitles: Record<string, string> = {
 
 export function EntrepreneurDashboardContent({ section }: { section: string }) {
   const title = sectionTitles[section] ?? "Sección";
-  const { orders, localEarnings, currentUser, products } = useOrderStorage();
+  const { orders, localEarnings, currentUser, products, updateProfile } = useOrderStorage();
   
   const myWithdrawals = localEarnings.filter((e) => e.type === "retiro");
   

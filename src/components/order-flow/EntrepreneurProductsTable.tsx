@@ -38,15 +38,17 @@ export function EntrepreneurProductsTable({ products }: { products: any[] }) {
     const newOrder = {
       id: `ORD-${Math.floor(Math.random() * 100000)}`,
       productId: selectedProduct.id,
-      product: selectedProduct.name,
+      productName: selectedProduct.name,
       customerId: "CUST-NEW",
-      customer: customerName,
+      customerName: customerName,
       customerPhone,
-      customerAddress,
+      deliveryAddress: customerAddress,
       entrepreneurId: currentUser.id,
       entrepreneur: currentUser.full_name || "Emprendedor",
-      amount: formatCurrency(price), // Cobrar al cliente el total final
-      profit: formatCurrency(profitAmount), // Ganancia neta para el dropshipper
+      supplierId: selectedProduct.supplierId || "SUP-001",
+      amount: price, // numeric type
+      profit: profitAmount, // numeric type
+      commission: fulfillmentFee + serviceFee, // platform commission
       status: "Pendiente",
       date: new Date().toISOString().split("T")[0],
       notes,
@@ -54,7 +56,7 @@ export function EntrepreneurProductsTable({ products }: { products: any[] }) {
 
     addOrder(newOrder);
     setSelectedProduct(null); // close modal
-    setCreatedOrder({ id: newOrder.id, product: newOrder.product }); // Trigger toast
+    setCreatedOrder({ id: newOrder.id, product: newOrder.productName }); // Trigger toast
     
     // reset form
     setCustomerName("");

@@ -158,7 +158,7 @@ export function DashboardShell({ mode, title, eyebrow, children }: DashboardShel
             <div className="flex items-center gap-2">
               {mode === "dashboard" && (
                 <Link
-                  href="/dashboard/products"
+                  href="/dashboard/mis-productos"
                   className="hidden md:flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-black text-white shadow-sm hover:bg-primary/90 transition-colors"
                 >
                   <PackagePlus className="h-4 w-4" />
