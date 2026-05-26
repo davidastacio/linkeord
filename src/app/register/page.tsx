@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Lock, Mail, Package, Phone, Truck, User } from "lucide-react";
+import { Lock, Mail, Package, Phone, Truck, User, Store } from "lucide-react";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { supabase } from "@/lib/supabase";
 
@@ -68,6 +68,7 @@ export default function RegisterPage() {
           email: formData.email,
           full_name: formData.name,
           role: formData.role,
+          approved: false,
         }
       ]);
 
@@ -78,6 +79,8 @@ export default function RegisterPage() {
 
       if (formData.role === "admin") {
         router.push("/admin");
+      } else if (formData.role === "proveedor") {
+        router.push("/provider");
       } else {
         router.push("/dashboard");
       }
@@ -193,7 +196,7 @@ export default function RegisterPage() {
 
           <div className="grid gap-3 pt-1">
             <p className="text-sm font-black text-slate-950">¿Cómo te identificarás en Linkeo?</p>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-3">
               <label className={`flex min-h-20 cursor-pointer items-center gap-4 rounded-md border px-4 py-3 shadow-sm transition ${formData.role === "emprendedor" ? "border-blue-500 bg-blue-50/70 ring-2 ring-blue-100" : "border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/40"}`}>
                 <input type="radio" name="role" value="emprendedor" checked={formData.role === "emprendedor"} onChange={handleChange} className="sr-only" />
                 <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-md shadow-sm ${formData.role === "emprendedor" ? "bg-white text-blue-600" : "bg-slate-50 text-navy"}`}>
@@ -203,6 +206,19 @@ export default function RegisterPage() {
                   <span className={`block text-sm font-black ${formData.role === "emprendedor" ? "text-blue-700" : "text-slate-950"}`}>Emprendedor</span>
                   <span className="block text-xs font-semibold leading-5 text-slate-600">
                     Vende productos y gestiona tu negocio
+                  </span>
+                </span>
+              </label>
+
+              <label className={`flex min-h-20 cursor-pointer items-center gap-4 rounded-md border px-4 py-3 shadow-sm transition ${formData.role === "proveedor" ? "border-blue-500 bg-blue-50/70 ring-2 ring-blue-100" : "border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/40"}`}>
+                <input type="radio" name="role" value="proveedor" checked={formData.role === "proveedor"} onChange={handleChange} className="sr-only" />
+                <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-md shadow-sm ${formData.role === "proveedor" ? "bg-white text-blue-600" : "bg-slate-50 text-navy"}`}>
+                  <Store className="h-6 w-6" />
+                </span>
+                <span>
+                  <span className={`block text-sm font-black ${formData.role === "proveedor" ? "text-blue-700" : "text-slate-950"}`}>Proveedor</span>
+                  <span className="block text-xs font-semibold leading-5 text-slate-600">
+                    Sube tus productos y surte al catálogo
                   </span>
                 </span>
               </label>

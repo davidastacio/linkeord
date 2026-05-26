@@ -116,13 +116,40 @@ const adminNav: NavGroup[] = [
   }
 ];
 
+const supplierNav: NavGroup[] = [
+  {
+    items: [{ label: "Dashboard", href: "/provider", icon: LayoutDashboard }]
+  },
+  {
+    label: "Proveedor",
+    items: [
+      { label: "Mis productos", href: "/provider/mis-productos", icon: ClipboardList },
+      { label: "Mis pedidos", href: "/provider/mis-pedidos", icon: ShoppingBag },
+      { label: "Mis ganancias", href: "/provider/mis-ganancias", icon: BadgeDollarSign }
+    ]
+  },
+  {
+    label: "Cuenta",
+    items: [
+      { label: "Mi perfil", href: "/provider/perfil", icon: UserRound },
+      { label: "Configuracion", href: "/provider/configuracion", icon: Settings },
+      { label: "Ayuda", href: "/provider/ayuda", icon: HelpCircle }
+    ]
+  }
+];
+
 type SidebarNavProps = {
-  mode: "dashboard" | "admin";
+  mode: "dashboard" | "admin" | "provider";
 };
 
 export function SidebarNav({ mode }: SidebarNavProps) {
   const pathname = usePathname();
-  const groups = mode === "admin" ? adminNav : entrepreneurNav;
+  const groups = 
+    mode === "admin" 
+      ? adminNav 
+      : mode === "provider" 
+      ? supplierNav 
+      : entrepreneurNav;
   const isAdmin = mode === "admin";
 
   return (

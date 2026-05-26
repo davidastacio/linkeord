@@ -6,7 +6,7 @@ import { DonutSummary, SeriesChart } from "@/components/dashboard/charts";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Truck } from "lucide-react";
-import { products, revenueSeries, entrepreneurEarningsBreakdown } from "@/lib/mock-data";
+import { revenueSeries, entrepreneurEarningsBreakdown } from "@/lib/mock-data";
 
 import { EntrepreneurProductsTable } from "@/components/order-flow/EntrepreneurProductsTable";
 import { EntrepreneurOrdersTable } from "@/components/order-flow/EntrepreneurOrdersTable";
@@ -29,7 +29,7 @@ const sectionTitles: Record<string, string> = {
 
 export function EntrepreneurDashboardContent({ section }: { section: string }) {
   const title = sectionTitles[section] ?? "Seccion";
-  const { orders, localEarnings, currentUser } = useOrderStorage();
+  const { orders, localEarnings, currentUser, products } = useOrderStorage();
   
   const myWithdrawals = localEarnings.filter((e) => e.type === "retiro");
   

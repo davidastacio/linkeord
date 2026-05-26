@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { earnings } from "@/lib/mock-data";
+import { earnings, products as baseProducts } from "@/lib/mock-data";
 import type { OrderStatus, StatusHistoryEntry } from "@/lib/mock/types";
 
 export function useOrderStorage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [localEarnings, setEarnings] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [products, setProducts] = useState<any[]>([]);
 
   useEffect(() => {
     // 1. Fetch initial orders from Supabase
@@ -24,7 +25,13 @@ export function useOrderStorage() {
           .single();
         
         if (profile) {
-          setCurrentUser(profile);
+          // Merge local settings modifications if any
+          const localProfileStr = localStorage.getItem("linkeo_profile_" + profile.id);
+          if (localProfileStr) {
+            setCurrentUser({ ...profile, ...JSON.parse(localProfileStr) });
+          } else {
+            setCurrentUser(profile);
+          }
           if (profile.role === "emprendedor") {
             query = query.eq("entrepreneurId", authData.user.id);
           }
@@ -36,20 +43,27 @@ export function useOrderStorage() {
       if (error) {
         console.error("Error fetching orders:", error);
       } else {
-        setOrders(data || []);
+        const savedMediaStr = localStorage.getItem("linkeo_orders_media") || "{}";
+        const savedMedia = JSON.parse(savedMediaStr);
+        
+        const mergedOrders = (data || []).map((o: any) => ({
+          ...o,
+          media: savedMedia[o.id] || o.media || []
+        }));
+        setOrders(mergedOrders);
       }
     };
 
     fetchOrders();
 
     // 2. Setup Realtime subscription
+    const channelName = `orders_changes_${Math.random().toString(36).slice(2, 11)}`;
     const subscription = supabase
-      .channel("orders_changes")
+      .channel(channelName)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "orders" },
         (payload) => {
-          // Refetch orders when any change happens across the network
           fetchOrders();
         }
       )
@@ -63,9 +77,23 @@ export function useOrderStorage() {
       setEarnings([]);
     }
 
+    // Products initialization from localStorage
+    const savedProducts = localStorage.getItem("linkeo_products");
+    if (savedProducts) {
+      setProducts(JSON.parse(savedProducts));
+    } else {
+      localStorage.setItem("linkeo_products", JSON.stringify(baseProducts));
+      setProducts(baseProducts);
+    }
+
     const handleStorageChange = () => {
       const updatedEarnings = localStorage.getItem("linkeo_earnings");
       if (updatedEarnings) setEarnings(JSON.parse(updatedEarnings));
+      
+      const updatedProducts = localStorage.getItem("linkeo_products");
+      if (updatedProducts) setProducts(JSON.parse(updatedProducts));
+
+      fetchOrders();
     };
 
     window.addEventListener("storage", handleStorageChange);
@@ -150,6 +178,43 @@ export function useOrderStorage() {
     window.dispatchEvent(new Event("linkeo-storage"));
   };
 
-  return { orders, localEarnings, currentUser, addOrder, updateOrderStatus, assignDelivery, addEarning };
+  const addProduct = (product: any) => {
+    const updatedProducts = [product, ...products];
+    setProducts(updatedProducts);
+    localStorage.setItem("linkeo_products", JSON.stringify(updatedProducts));
+    window.dispatchEvent(new Event("linkeo-storage"));
+  };
+
+  const updateProfile = async (updatedFields: any) => {
+    const updatedUser = { ...currentUser, ...updatedFields };
+    setCurrentUser(updatedUser);
+    
+    if (currentUser?.id) {
+      localStorage.setItem("linkeo_profile_" + currentUser.id, JSON.stringify(updatedUser));
+      
+      const { error } = await supabase
+        .from("profiles")
+        .update(updatedFields)
+        .eq("id", currentUser.id);
+      if (error) console.error("Error updating profile in Supabase:", error);
+    }
+    window.dispatchEvent(new Event("linkeo-storage"));
+  };
+
+  const addOrderMedia = (orderId: string, url: string, type: "photo" | "video") => {
+    const savedMediaStr = localStorage.getItem("linkeo_orders_media") || "{}";
+    const savedMedia = JSON.parse(savedMediaStr);
+    const mediaList = savedMedia[orderId] || [];
+    const updatedMedia = [...mediaList, { type, url, date: new Date().toISOString() }];
+    savedMedia[orderId] = updatedMedia;
+    localStorage.setItem("linkeo_orders_media", JSON.stringify(savedMedia));
+
+    // Update local state orders immediately
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, media: updatedMedia } : o));
+
+    window.dispatchEvent(new Event("linkeo-storage"));
+  };
+
+  return { orders, localEarnings, currentUser, products, addOrder, updateOrderStatus, assignDelivery, addEarning, addProduct, updateProfile, addOrderMedia };
 }
 

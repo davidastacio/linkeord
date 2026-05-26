@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Bell, ChevronDown, Menu, MessageSquareText, Search, PackagePlus } from "lucide-react";
+import { Bell, ChevronDown, Menu, MessageSquareText, Search, PackagePlus, Clock, LogOut } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 
 type DashboardShellProps = {
-  mode: "dashboard" | "admin";
+  mode: "dashboard" | "admin" | "provider";
   title: string;
   eyebrow: string;
   children: React.ReactNode;
@@ -19,6 +19,13 @@ type DashboardShellProps = {
 export function DashboardShell({ mode, title, eyebrow, children }: DashboardShellProps) {
   const isAdmin = mode === "admin";
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  };
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -38,11 +45,66 @@ export function DashboardShell({ mode, title, eyebrow, children }: DashboardShel
     fetchUser();
   }, []);
 
-  const userName = userProfile?.full_name || (isAdmin ? "Administrador" : "Cargando...");
+  const userName = userProfile?.full_name || (isAdmin ? "Administrador" : (mode === "provider" ? "Proveedor" : "Cargando..."));
   const userInitials = userProfile?.full_name 
     ? userProfile.full_name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
-    : (isAdmin ? "AD" : "...");
-  const userRole = userProfile?.role === "admin" ? "Admin" : (userProfile?.role === "emprendedor" ? "Emprendedor" : "Usuario");
+    : (isAdmin ? "AD" : (mode === "provider" ? "PV" : "..."));
+  const userRole = userProfile?.role === "admin" ? "Admin" : (userProfile?.role === "proveedor" ? "Proveedor" : (userProfile?.role === "emprendedor" ? "Emprendedor" : "Usuario"));
+
+  // Bloqueo de seguridad: Si el usuario existe pero no está aprobado, se le muestra la pantalla de espera
+  if (userProfile && userProfile.approved === false && userProfile.role !== "admin") {
+    return (
+      <div className="relative flex min-h-screen flex-col items-center justify-center bg-[#f7faff] p-4 text-center">
+        {/* Elementos decorativos de fondo */}
+        <div className="absolute top-1/4 left-1/4 h-72 w-72 rounded-full bg-blue-400/10 blur-[100px]" />
+        <div className="absolute bottom-1/4 right-1/4 h-72 w-72 rounded-full bg-indigo-400/10 blur-[100px]" />
+
+        <div className="relative z-10 w-full max-w-lg rounded-2xl border border-white/80 bg-white/70 p-8 shadow-[0_20px_60px_rgba(8,26,58,0.08)] backdrop-blur-md md:p-10">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-blue-600 shadow-inner">
+            <Clock className="h-8 w-8 animate-pulse" />
+          </div>
+
+          <div className="mt-6">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700 ring-1 ring-inset ring-amber-600/10">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-ping" />
+              Pendiente de Aprobación
+            </span>
+          </div>
+
+          <h2 className="mt-6 text-2xl font-black text-navy sm:text-3xl">¡Tu cuenta está en revisión!</h2>
+          <p className="mt-4 text-sm font-semibold leading-relaxed text-slate-600">
+            Hola, <span className="text-blue-600">{userProfile.full_name}</span>. Para garantizar la seguridad e integridad de la plataforma, un administrador debe validar tu perfil y darte de alta antes de que puedas comenzar a operar.
+          </p>
+
+          <div className="mt-8 rounded-lg bg-blue-50/50 p-4 text-left text-xs font-bold leading-5 text-slate-600 border border-blue-100/40">
+            <p className="text-blue-700 mb-1">🔍 ¿Qué pasa ahora?</p>
+            <p>1. Nuestro equipo de administración verificará tu registro en un plazo máximo de 24 horas.</p>
+            <p>2. Se configurará tu entorno de trabajo según el rol seleccionado (<span className="capitalize">{userProfile.role}</span>).</p>
+            <p>3. Una vez aprobada, al recargar esta página podrás acceder de inmediato.</p>
+          </div>
+
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <Button
+              onClick={() => window.location.reload()}
+              className="flex h-11 items-center justify-center gap-2 rounded-md bg-blue-600 px-5 text-sm font-black text-white hover:bg-blue-700 transition"
+            >
+              Recargar Estado
+            </Button>
+            <Button
+              onClick={handleLogout}
+              disabled={loggingOut}
+              variant="outline"
+              className="flex h-11 items-center justify-center gap-2 rounded-md border-slate-200 bg-white px-5 text-sm font-black text-slate-700 hover:bg-slate-50 transition"
+            >
+              <LogOut className="h-4 w-4" />
+              {loggingOut ? "Cerrando..." : "Cerrar sesión"}
+            </Button>
+          </div>
+        </div>
+        <p className="mt-8 text-xs font-semibold text-slate-400">Linkeo © 2026. Todos los derechos reservados.</p>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("min-h-screen", isAdmin ? "bg-[#f6f9ff]" : "bg-[#f7faff]")}>
@@ -94,7 +156,7 @@ export function DashboardShell({ mode, title, eyebrow, children }: DashboardShel
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {!isAdmin && (
+              {mode === "dashboard" && (
                 <Link
                   href="/dashboard/products"
                   className="hidden md:flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-black text-white shadow-sm hover:bg-primary/90 transition-colors"

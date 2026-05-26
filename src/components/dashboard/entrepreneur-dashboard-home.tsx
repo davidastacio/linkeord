@@ -8,7 +8,6 @@ import { OrderStatusBadge } from "@/components/order-status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   entrepreneurEarningsBreakdown,
-  products,
   revenueSeries,
   tinySalesSeries
 } from "@/lib/mock-data";
@@ -16,7 +15,7 @@ import { useOrderStorage } from "@/components/order-flow/store";
 import Link from "next/link";
 
 export function EntrepreneurDashboardHome() {
-  const { orders, localEarnings, currentUser } = useOrderStorage();
+  const { orders, localEarnings, currentUser, products } = useOrderStorage();
 
   // Calculate real stats
   const totalEarned = localEarnings.reduce((acc, curr) => acc + (curr.type === "venta" ? curr.amount : 0), 0);

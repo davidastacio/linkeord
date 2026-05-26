@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Package, ShieldCheck, Sparkles, Truck } from "lucide-react";
+import { ArrowRight, Package, ShieldCheck, Sparkles, Truck, Store } from "lucide-react";
 
 const roles = [
   {
@@ -7,6 +7,12 @@ const roles = [
     description: "Accede al panel administrativo de la plataforma demo.",
     href: "/admin",
     icon: ShieldCheck,
+  },
+  {
+    title: "Proveedor",
+    description: "Carga productos, gestiona stock y despacha pedidos.",
+    href: "/provider",
+    icon: Store,
   },
   {
     title: "Emprendedor",
@@ -37,7 +43,7 @@ export default function RoleSelectionPage() {
           </p>
         </div>
 
-        <div className="mt-9 grid gap-4 md:grid-cols-3">
+        <div className="mt-9 grid gap-4 md:grid-cols-4">
           {roles.map((role) => {
             const Icon = role.icon;
 

@@ -14,6 +14,7 @@ import {
 } from "@/lib/mock-data";
 
 import { AdminOrdersTable } from "@/components/order-flow/AdminOrdersTable";
+import { AdminProfilesTable } from "@/components/admin/AdminProfilesTable";
 
 const sectionTitles: Record<string, string> = {
   emprendedores: "Gestion de emprendedores",
@@ -48,35 +49,10 @@ export default async function AdminSectionPage({
       {section === "emprendedores" && (
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle>Listado de Emprendedores</CardTitle>
+            <CardTitle>Solicitudes y Acceso de Emprendedores</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[700px] text-sm text-left">
-                <thead>
-                  <tr className="border-b border-border text-xs text-muted-foreground">
-                    <th className="py-3 font-black">Emprendedor</th>
-                    <th className="py-3 font-black">Tienda</th>
-                    <th className="py-3 font-black">Nivel</th>
-                    <th className="py-3 font-black">Ventas</th>
-                    <th className="py-3 font-black">Pedidos</th>
-                    <th className="py-3 font-black">Estado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {entrepreneurs.map((e) => (
-                    <tr key={e.id} className="border-b border-border last:border-0">
-                      <td className="py-4 font-black text-navy">{e.name}</td>
-                      <td className="py-4 text-muted-foreground">{e.store}</td>
-                      <td className="py-4 font-bold text-navy">{e.level}</td>
-                      <td className="py-4 font-bold text-emerald-600">RD$ {e.sales.toLocaleString("en-US")}</td>
-                      <td className="py-4 font-bold text-navy">{e.orders}</td>
-                      <td className="py-4"><OrderStatusBadge status={e.status} /></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <AdminProfilesTable />
           </CardContent>
         </Card>
       )}
